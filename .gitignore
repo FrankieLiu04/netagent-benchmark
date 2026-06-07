@@ -1,2 +1,29 @@
+# macOS
 .DS_Store
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.secret
+
+# Build
+dist/
+build/
+
+# OS
+Thumbs.db
