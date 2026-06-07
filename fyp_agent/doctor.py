@@ -1,27 +1,31 @@
+"""诊断工具 — 检查 LLM provider 和 CML MCP 的连通性。"""
+
 from __future__ import annotations
 
-import shutil
-
-from .config import ConfigError, Settings, load_settings
+from .config import ConfigError, load_settings
 from .mcp_client import list_safe_tools
 
 
 async def run_doctor() -> tuple[int, list[str]]:
+    """逐项检查运行环境，返回 (退出码, 消息列表)。"""
     messages: list[str] = []
 
+    # 1. 加载 .env 配置
     try:
         settings = load_settings()
         messages.append("OK: loaded .env configuration")
     except ConfigError as exc:
         return 1, [str(exc)]
 
-    uvx_path = shutil.which(settings.uvx_command)
-    if uvx_path:
-        messages.append(f"OK: found {settings.uvx_command} at {uvx_path}")
-    else:
-        messages.append(f"FAIL: {settings.uvx_command} was not found on PATH")
+    # 2. 检查 cml-mcp 包是否可导入
+    try:
+        import cml_mcp  # noqa: F401
+        messages.append("OK: cml-mcp package is importable")
+    except ImportError:
+        messages.append("FAIL: cml-mcp is not installed. Run: pip install cml-mcp[pyats]")
         return 1, messages
 
+    # 3. 检查 LLM API key
     if settings.provider_api_key:
         key_name = "OPENAI_API_KEY" if settings.llm_provider == "openai" else "DEEPSEEK_API_KEY"
         messages.append(f"OK: {key_name} is set")
@@ -31,6 +35,7 @@ async def run_doctor() -> tuple[int, list[str]]:
         messages.append(f"FAIL: {key_name} is missing")
         return 1, messages
 
+    # 4. 检查 CML MCP server 是否能启动并列出工具
     try:
         tools = await list_safe_tools(settings)
     except Exception as exc:

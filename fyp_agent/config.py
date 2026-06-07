@@ -15,6 +15,12 @@ DEFAULT_MAX_TURNS = 6
 
 
 class Settings(BaseModel):
+    """Agent 运行时配置，从 .env 文件加载。
+
+    支持 OpenAI 和 DeepSeek 两种 LLM provider，
+    通过 LLM_PROVIDER 环境变量切换。
+    """
+
     llm_provider: Literal["openai", "deepseek"] = "deepseek"
     llm_model: str | None = None
     openai_api_key: str | None = None
@@ -25,12 +31,12 @@ class Settings(BaseModel):
     cml_password: str = Field(..., min_length=1)
     cml_verify_ssl: bool = False
     max_turns: int = Field(default=DEFAULT_MAX_TURNS, ge=1, le=20)
-    uvx_command: str = Field(default="uvx", min_length=1)
-    mcp_python: str = Field(default="3.13", min_length=1)
+    # MCP server 会话超时（秒），冷启动首次可能较长
     mcp_timeout_seconds: float = Field(default=30.0, ge=1.0, le=300.0)
 
     @model_validator(mode="after")
     def require_provider_key(self) -> "Settings":
+        """确保当前 provider 对应的 API key 已设置。"""
         if self.llm_provider == "openai" and not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
         if self.llm_provider == "deepseek" and not self.deepseek_api_key:
@@ -52,6 +58,7 @@ class Settings(BaseModel):
         raise ValueError(f"invalid boolean value: {value!r}")
 
     def cml_env(self) -> dict[str, str]:
+        """构建传递给 cml-mcp 子进程的环境变量。"""
         return {
             "CML_URL": self.cml_url,
             "CML_USERNAME": self.cml_username,
@@ -101,8 +108,6 @@ def load_settings(env_file: str | Path = ".env") -> Settings:
         "cml_username": os.getenv("CML_USERNAME"),
         "cml_password": os.getenv("CML_PASSWORD"),
         "cml_verify_ssl": os.getenv("CML_VERIFY_SSL", "false"),
-        "max_turns": os.getenv("FYP_AGENT_MAX_TURNS", str(DEFAULT_MAX_TURNS)),
-        "uvx_command": os.getenv("UVX_COMMAND", "uvx"),
         "mcp_python": os.getenv("FYP_MCP_PYTHON", "3.13"),
         "mcp_timeout_seconds": os.getenv("FYP_MCP_TIMEOUT_SECONDS", "30"),
     }

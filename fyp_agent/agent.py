@@ -1,3 +1,8 @@
+"""Agent 构建 — 配置 LLM provider、model、system prompt 和 MCP 工具。
+
+当前为 Phase 1 read-only agent，仅允许查询 CML 状态。
+"""
+
 from __future__ import annotations
 
 from agents import Agent, AsyncOpenAI, OpenAIChatCompletionsModel
@@ -6,6 +11,7 @@ from agents.mcp import MCPServer
 from .config import Settings
 
 
+# 系统提示词：将 Agent 约束为只读 CML 助手
 SYSTEM_PROMPT = """You are a CML network lab assistant for an academic FYP.
 
 You help inspect Cisco Modeling Labs (CML) state through MCP tools. In this
@@ -25,6 +31,7 @@ verification, CML availability, or whether the requested lab/node exists.
 
 
 def build_agent(settings: Settings, mcp_server: MCPServer) -> Agent:
+    """构建 Agent 实例，根据 settings.llm_provider 选择 OpenAI 或 DeepSeek。"""
     model = settings.model_name
     if settings.llm_provider == "deepseek":
         client = AsyncOpenAI(

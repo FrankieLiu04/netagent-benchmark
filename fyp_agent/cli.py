@@ -11,14 +11,19 @@ from .runner import run_agent_task
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """构建 CLI 参数解析器，包含 run / tools / doctor 三个子命令。"""
     parser = argparse.ArgumentParser(prog="fyp-agent", description="FYP CML agent harness")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    # fyp-agent run "task" — 执行一次只读 agent 任务
     run_parser = subparsers.add_parser("run", help="Run one read-only CML agent task")
     run_parser.add_argument("task", help="Natural-language task for the agent")
 
+    # fyp-agent tools — 列出当前白名单内的 CML MCP 工具
     subparsers.add_parser("tools", help="List read-only CML MCP tools exposed to the agent")
-    subparsers.add_parser("doctor", help="Check OpenAI, uvx, and CML MCP connectivity")
+
+    # fyp-agent doctor — 诊断运行环境
+    subparsers.add_parser("doctor", help="Check LLM provider and CML MCP connectivity")
     return parser
 
 

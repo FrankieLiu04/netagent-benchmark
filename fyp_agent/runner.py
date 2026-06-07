@@ -1,3 +1,8 @@
+"""Agent 任务执行器 — 编排一次 agent run 的完整生命周期。
+
+流程: start_run_log → cml_mcp_server(connect) → build_agent → Runner.run → write_run_log
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,6 +20,7 @@ from .tools import SAFE_CML_TOOLS
 
 @dataclass(frozen=True)
 class AgentRunResult:
+    """一次 agent run 的结果。"""
     final_answer: str
     run_log_path: Path
     run_id: str

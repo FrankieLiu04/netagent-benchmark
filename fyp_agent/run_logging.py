@@ -1,3 +1,9 @@
+"""Run 日志 — 将每次 agent 执行的结果序列化为 JSON，自动脱敏。
+
+每次 run 在 experiments/runs/ 下创建独立目录，
+写入 run.json（已过滤密钥字段）。
+"""
+
 from __future__ import annotations
 
 import json
@@ -31,6 +37,7 @@ def make_slug(text: str, max_length: int = 48) -> str:
 
 
 def start_run_log(task: str, root: Path = Path("experiments/runs")) -> RunLog:
+    """创建一次 run 的日志目录，返回 RunLog 元数据。"""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{timestamp}-{uuid4().hex[:8]}"
     run_dir = root / f"{run_id}-{make_slug(task)}"
@@ -39,6 +46,7 @@ def start_run_log(task: str, root: Path = Path("experiments/runs")) -> RunLog:
 
 
 def sanitize_payload(payload: dict[str, object]) -> dict[str, object]:
+    """递归移除 payload 中的密钥字段（API key、密码等）。"""
     clean: dict[str, object] = {}
     for key, value in payload.items():
         if key in SECRET_FIELD_NAMES:
@@ -51,6 +59,7 @@ def sanitize_payload(payload: dict[str, object]) -> dict[str, object]:
 
 
 def write_run_log(run_log: RunLog, payload: dict[str, object]) -> Path:
+    """将脱敏后的 payload 写入 run.json，返回文件路径。"""
     path = run_log.run_dir / "run.json"
     clean = sanitize_payload(payload)
     path.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n", encoding="utf-8")
