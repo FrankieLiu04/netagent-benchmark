@@ -17,16 +17,43 @@ dependencies = [
 dev = [
     "pytest>=8.2.0",
 ]
+research = [
+    "deepdiff>=8.0.0",
+    "sortedcontainers>=2.4.0",
+]
+netconfeval-langchain = [
+    "langchain-community>=0.2.0",
+    "langchain-openai>=1.0.0",
+    "requests-toolbelt>=1.0.0",
+    "tiktoken>=0.7.0",
+]
+netconfeval-sim = [
+    "chromadb>=0.5.0",
+    "kathara>=3.7.0",
+    "numpy>=1.26.0",
+    "pdfminer.six>=20240706",
+    "scikit-learn>=1.5.0",
+]
 
 [project.scripts]
 fyp-agent = "fyp_agent.cli:main"
+netconfeval-step1 = "research.netconfeval_repro.runners.step1_translation:main"
 
 [build-system]
 requires = ["setuptools>=69.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["fyp_agent"]
+packages = [
+    "fyp_agent",
+    "research",
+    "research.netconfeval_repro",
+    "research.netconfeval_repro.adapters",
+    "research.netconfeval_repro.datasets",
+    "research.netconfeval_repro.runners",
+    "research.netconfeval_repro.scorers",
+    "research.netconfeval_repro.verifiers",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

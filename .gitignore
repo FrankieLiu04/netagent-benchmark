@@ -28,3 +28,6 @@ build/
 # OS
 Thumbs.db
 experiments/runs/
+
+# Third-party research code (not our repo)
+research/netconfeval/
