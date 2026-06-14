@@ -108,7 +108,6 @@ def load_settings(env_file: str | Path = ".env") -> Settings:
         "cml_username": os.getenv("CML_USERNAME"),
         "cml_password": os.getenv("CML_PASSWORD"),
         "cml_verify_ssl": os.getenv("CML_VERIFY_SSL", "false"),
-        "mcp_python": os.getenv("FYP_MCP_PYTHON", "3.13"),
         "mcp_timeout_seconds": os.getenv("FYP_MCP_TIMEOUT_SECONDS", "30"),
     }
 

@@ -10,7 +10,7 @@ dependencies = [
     "openai>=2.0.0",
     "pydantic>=2.7.0",
     "python-dotenv>=1.0.1",
-    "virl2-client==2.9.1",
+    "virl2-client>=2.9.1,<2.10",
 ]
 
 [project.optional-dependencies]
