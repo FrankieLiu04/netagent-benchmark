@@ -1,6 +1,6 @@
 """Agent 任务执行器 — 编排一次 agent run 的完整生命周期。
 
-流程: start_run_log → cml_mcp_server(connect) → build_agent → Runner.run → write_run_log
+流程: start_run_log → cml_mcp_session(connect) → list_tools → agent_loop → write_run_log
 """
 
 from __future__ import annotations
@@ -9,11 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from agents import RunConfig, Runner
-
-from .agent import build_agent
 from .config import Settings
-from .mcp_client import cml_mcp_server
+from .llm import LLMClient
+from .loop import AgentLoopResult, StepHook, agent_loop
+from .mcp_client import cml_mcp_session
+from .prompts import get_system_prompt
 from .run_logging import start_run_log, write_run_log
 from .tools import SAFE_CML_TOOLS
 
@@ -21,20 +21,27 @@ from .tools import SAFE_CML_TOOLS
 @dataclass(frozen=True)
 class AgentRunResult:
     """一次 agent run 的结果。"""
+
     final_answer: str
     run_log_path: Path
     run_id: str
 
 
-def _trace_id(result: Any) -> str | None:
-    for attr in ("trace_id", "last_response_id"):
-        value = getattr(result, attr, None)
-        if value:
-            return str(value)
-    return None
+async def run_agent_task(
+    settings: Settings,
+    task: str,
+    hooks: list[StepHook] | None = None,
+) -> AgentRunResult:
+    """执行一次 agent 任务，返回结果。
 
+    Args:
+        settings: 运行时配置。
+        task: 用户的自然语言任务。
+        hooks: 可选的 step hooks（Phase 3 扩展用）。
 
-async def run_agent_task(settings: Settings, task: str) -> AgentRunResult:
+    Returns:
+        AgentRunResult，包含最终答案和 run log 路径。
+    """
     run_log = start_run_log(task)
     payload: dict[str, object] = {
         "run_id": run_log.run_id,
@@ -46,24 +53,41 @@ async def run_agent_task(settings: Settings, task: str) -> AgentRunResult:
     }
 
     try:
-        async with cml_mcp_server(settings) as server:
-            agent = build_agent(settings, server)
-            result = await Runner.run(
-                agent,
-                task,
-                max_turns=settings.max_turns,
-                run_config=RunConfig(
-                    workflow_name="fyp-cml-agent",
-                    tracing_disabled=settings.llm_provider != "openai",
-                    trace_include_sensitive_data=False,
-                ),
+        async with cml_mcp_session(settings) as mcp:
+            # 获取白名单内的工具定义
+            tools = await mcp.list_tools()
+
+            # 构建 LLM 客户端
+            llm = LLMClient.from_settings(settings)
+
+            # 执行 agent loop
+            system_prompt = get_system_prompt("read_only")
+            result: AgentLoopResult = await agent_loop(
+                task=task,
+                system_prompt=system_prompt,
+                llm=llm,
+                mcp=mcp,
+                tools=tools,
+                max_steps=settings.max_turns,
+                hooks=hooks,
             )
-        final_answer = str(result.final_output)
-        payload["final_answer"] = final_answer
-        payload["sdk_trace_id"] = _trace_id(result)
+
+        payload["final_answer"] = result.final_answer
+        payload["steps"] = result.steps
+        payload["total_prompt_tokens"] = result.total_prompt_tokens
+        payload["total_completion_tokens"] = result.total_completion_tokens
+        payload["duration_seconds"] = round(result.duration_seconds, 3)
+        payload["steps_trace"] = [t.to_dict() for t in result.traces]
+
         log_path = write_run_log(run_log, payload)
-        return AgentRunResult(final_answer=final_answer, run_log_path=log_path, run_id=run_log.run_id)
+        return AgentRunResult(
+            final_answer=result.final_answer,
+            run_log_path=log_path,
+            run_id=run_log.run_id,
+        )
     except Exception as exc:
         payload["error_message"] = f"{type(exc).__name__}: {exc}"
         log_path = write_run_log(run_log, payload)
-        raise RuntimeError(f"Agent run failed. Run log written to {log_path}: {exc}") from exc
+        raise RuntimeError(
+            f"Agent run failed. Run log written to {log_path}: {exc}"
+        ) from exc

@@ -16,5 +16,5 @@ def test_cml_mcp_params_uses_python_with_cml_mcp_module():
     )
 
     params = cml_mcp_params(settings)
-    assert params["command"] == sys.executable
-    assert params["args"] == ["-m", "cml_mcp"]
+    assert params.command == sys.executable
+    assert params.args == ["-m", "cml_mcp"]

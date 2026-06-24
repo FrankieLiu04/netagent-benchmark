@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "cml-mcp[pyats]>=0.28.0",
-    "openai-agents>=0.6.0",
+    "mcp>=1.0.0",
     "openai>=2.0.0",
     "pydantic>=2.7.0",
     "python-dotenv>=1.0.1",
@@ -58,3 +58,9 @@ packages = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.4.0",
+]
