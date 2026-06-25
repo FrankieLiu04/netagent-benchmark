@@ -1,0 +1,20 @@
+ Container netconfeval-paper-netconfeval-paper-run-4e727af85ebb Creating 
+ Container netconfeval-paper-netconfeval-paper-run-4e727af85ebb Created 
+[netconfeval-paper] upstream ready at 24edc15b6f94e1b5805ae904cc05676eca2f02fe
+[INFO] Performing iteration n. 1...
+[INFO] Performing experiment with 1 batch size (iteration n. 1)...
+[INFO] Performing experiment with 1 batch size on chunk 0 (iteration n. 1)...
+[WARNING] ==== RUN #1 (CHUNK #1) - BATCH: 1*1 ====
+[WARNING] Expected Result: {
+    "reachability": {
+        "istanbul": [
+            "100.0.4.0/24"
+        ]
+    },
+    "waypoint": {},
+    "loadbalancing": {}
+}
+[WARNING] Human Translation: 100.0.4.0/24 is accessible from istanbul.
+[INFO] HTTP Request: POST https://api.deepseek.com/chat/completions "HTTP/1.1 200 OK"
+[WARNING] LLM Result: {'reachability': {'istanbul': ['100.0.4.0/24']}}
+[WARNING] ==================================================================

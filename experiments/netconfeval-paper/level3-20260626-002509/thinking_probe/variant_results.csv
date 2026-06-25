@@ -1,0 +1,5 @@
+variant,description,thinking_type,reasoning_effort,success,failure_class,parse_error,time,reasoning_chars,content_chars,prompt_tokens,completion_tokens,total_tokens
+A_default,default thinking behavior,default,default,1,pass,,12.718,1699,2113,814,890,1704
+B_enabled_high,thinking enabled with high effort,enabled,high,1,pass,,11.122,2610,1821,814,1050,1864
+C_enabled_max,thinking enabled with max effort,enabled,max,1,pass,,83.994,37805,1692,893,9340,10233
+D_disabled,thinking disabled,disabled,default,1,pass,,6.616,0,2275,814,603,1417

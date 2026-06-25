@@ -1,0 +1,13 @@
+==== RUN #1 (CHUNK #1) - BATCH: 1*1 ====
+Expected Result: {
+    "reachability": {
+        "istanbul": [
+            "100.0.4.0/24"
+        ]
+    },
+    "waypoint": {},
+    "loadbalancing": {}
+}
+Human Translation: 100.0.4.0/24 is accessible from istanbul.
+LLM Result: {'reachability': {'istanbul': ['100.0.4.0/24']}}
+==================================================================

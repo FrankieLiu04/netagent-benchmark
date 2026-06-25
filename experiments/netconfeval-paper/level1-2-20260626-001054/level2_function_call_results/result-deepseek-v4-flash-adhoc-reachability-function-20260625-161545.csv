@@ -1,0 +1,2 @@
+model_error,format_error,batch_size,n_policy_types,max_n_requirements,iteration,chunk,time,total,success,fail,wrong,accuracy,prompt_tokens,completion_tokens,total_cost,diff
+,,1,1,1,0,0,5.117532014846802,1,1,0,0,1.0,134,105,0.0,"{'dictionary_item_removed': [""root['waypoint']"", ""root['loadbalancing']""]}"

@@ -1,0 +1,169 @@
+ Network netconfeval-paper_default Creating 
+ Network netconfeval-paper_default Created 
+ Container netconfeval-paper-netconfeval-paper-run-e1107f4220aa Creating 
+ Container netconfeval-paper-netconfeval-paper-run-e1107f4220aa Created 
+[netconfeval-paper] upstream ready at 24edc15b6f94e1b5805ae904cc05676eca2f02fe
+[OK] policies=loadbalancing reachability waypoint iter=1/1 batch=1 chunk=1/1 acc=1.0 exact=1 tokens=861+316 time=5.053s
+[OK] policies=loadbalancing reachability waypoint iter=1/1 batch=3 chunk=1/1 acc=1.0 exact=1 tokens=983+490 time=4.078s
+[OK] policies=loadbalancing reachability waypoint iter=1/1 batch=11 chunk=1/1 acc=1.0 exact=1 tokens=1496+2876 time=17.195s
+[OK] policies=loadbalancing reachability waypoint iter=1/1 batch=33 chunk=1/1 acc=1.0 exact=1 tokens=2868+6593 time=36.112s
+[OK] policies=reachability waypoint iter=1/1 batch=1 chunk=1/1 acc=1.0 exact=0 tokens=688+227 time=2.889s
+[OK] policies=reachability waypoint iter=1/1 batch=2 chunk=1/1 acc=1.0 exact=0 tokens=728+459 time=4.795s
+[OK] policies=reachability waypoint iter=1/1 batch=5 chunk=1/1 acc=1.0 exact=0 tokens=841+871 time=6.345s
+[OK] policies=reachability waypoint iter=1/1 batch=10 chunk=1/1 acc=1.0 exact=0 tokens=1046+2163 time=12.963s
+[OK] policies=reachability waypoint iter=1/1 batch=25 chunk=1/1 acc=1.0 exact=0 tokens=1598+4629 time=26.247s
+[FAIL] policies=reachability waypoint iter=1/1 batch=50 chunk=1/1 acc=0 exact=0 tokens=0+0 time=44.541s
+[OK] policies=reachability iter=1/1 batch=1 chunk=1/1 acc=1.0 exact=0 tokens=515+149 time=2.264s
+[OK] policies=reachability iter=1/1 batch=2 chunk=1/1 acc=1.0 exact=0 tokens=532+296 time=3.591s
+[OK] policies=reachability iter=1/1 batch=5 chunk=1/1 acc=1.0 exact=0 tokens=594+250 time=2.802s
+[OK] policies=reachability iter=1/1 batch=10 chunk=1/1 acc=1.0 exact=0 tokens=681+838 time=5.944s
+[OK] policies=reachability iter=1/1 batch=20 chunk=1/1 acc=1.0 exact=0 tokens=863+1098 time=7.877s
+[OK] policies=reachability iter=1/1 batch=50 chunk=1/1 acc=1.0 exact=0 tokens=1385+3295 time=18.229s
+[OK] policies=reachability iter=1/1 batch=100 chunk=1/1 acc=1.0 exact=0 tokens=2275+6647 time=28.985s
+========================================================================
+Results saved to: /workspace/research/netconfeval/results_spec_translation_faithful/result-deepseek-v4-flash-step1-faithful-20260625-160027.csv
+Rows: 17
+Mean requirement accuracy: 0.9412
+Strict exact match: 4/17 = 23.53%
+Errored rows: 1
+========================================================================
+[netconfeval-paper] upstream ready at 24edc15b6f94e1b5805ae904cc05676eca2f02fe
+[INFO] Performing iteration n. 1...
+[INFO] Performing experiment with 1 batch size (iteration n. 1)...
+[INFO] Performing experiment with 1 batch size on chunk 0 (iteration n. 1)...
+[WARNING] ==== RUN #1 (CHUNK #1) - BATCH: 1*1 ====
+[WARNING] Expected Result: {
+    "reachability": {
+        "istanbul": [
+            "100.0.4.0/24"
+        ]
+    },
+    "waypoint": {},
+    "loadbalancing": {}
+}
+[WARNING] Human Translation: 100.0.4.0/24 is accessible from istanbul.
+[INFO] HTTP Request: POST https://api.deepseek.com/chat/completions "HTTP/1.1 200 OK"
+[WARNING] LLM Result: {'reachability': {'istanbul': ['100.0.4.0/24']}}
+[WARNING] ==================================================================
+[netconfeval-paper] upstream ready at 24edc15b6f94e1b5805ae904cc05676eca2f02fe
+[WARNING] (Iteration n. 0) performing code generation with shortest_path...
+/workspace/research/netconfeval/netconfeval/step_2_code_gen.py:168: LangChainDeprecationWarning: The class `LLMChain` was deprecated in LangChain 0.1.17 and will be removed in 1.0. Use RunnableSequence, e.g., `prompt | llm` instead.
+  chain_step_2 = LLMChain(
+[WARNING] Error in StdOutCallbackHandler.on_chain_start callback: AttributeError("'NoneType' object has no attribute 'get'")
+Prompt after formatting:
+[32;1m[1;3mSystem: Your task is to generate a python function compute_routing_paths() calculating the routing paths according to network topology and network requirements. Import relevant packages and libraries for the code. You also act like a REST server, you only talk JSON, no natural language.
+If the response is successful, you reply with a format like: {"status": "OK", "result": "<RESULT>"}. I will ask if you must include a "result" in the response, otherwise, just include "status".
+If the response fails, you reply with a format like: {"status": "ERROR", "reason": "<YOUR_REASON>"}. <YOUR_REASON> can be in natural language.
+
+Start acting like a REST server from the current prompt and wait for my instructions.
+Human: The input of the function should be the network topology in the format delimited by <topo></topo>, and network requirements which are None by default. The output should be routing paths in the format described in the text delimited by <out></out>.
+<topo> 
+Dict[str, Dict[int, str]], a dictionary where: 
+The keys are device (switch or host) names (strings) like "s1", "s2", etc. 
+The values are dictionaries that represent each device’s connections.
+The keys of these inner dictionaries are port identifiers (integers) like 0, 1, etc.
+The values of these inner dictionaries are LAN identifiers (strings) like "A", "B", "C", etc.
+For example {"d1, {0: "LAN1"}} means device d1 is connected to a LAN LAN1 via port 0.
+</topo>
+<out>
+{"h1": 
+ {"h2": ["h1", "s1", "s2..., "h2"], ...}, 
+"h2": {
+ "h1": ["h2", "s1", "s2", ..., "h1"], ...},
+ ...
+}
+Dict[str, Dict[str, List[str]]], a dictionary where:
+The keys are strings representing the host names (e.g., "h1", "h2", etc.).
+The values are dictionaries that represent the paths from the key host to each of the other reachable hosts. These dictionaries have:
+Keys as strings representing the other host names.
+Values as lists of strings representing the sequence of switches (containing source and destination) to be traversed to get from one host to another host. The path should only consist of hosts and routers, and should exclude LAN identifiers.
+For example: "h1": {"h2": ["h1", "s1", "h2"], "h3": ["h1", "s2", "h3"]} means h1 should send packets to h2 along the path made of s1, and send packet to h3 along the path made of s2
+</out>
+Understand the input and output. Wait for the users' instructions.
+
+Human: Based on the input and output format, your task is to generate the function.
+Step 1:
+Construct a network graph from the topology.
+Step 2:
+Identify the unidirectional host pairs (host1, host2) based on the network topology.
+Step 3:
+For each host pair, find all possible paths based on the network topology and rank them according to their length.
+Step 4: 
+For each host pair, pick the shortest path.
+Step 5:
+Remove LAN identifiers (the ones not starting with 'h' or 's') in the path. Return final routing paths for all host pairs.
+
+Human: 
+
+System: Now generate the code. Output 'OK' in 'status' field and provide a function in the string format in the 'result' field without adding any additional text or explanation. Remember that the output should be in a valid JSON format.[0m
+[INFO] HTTP Request: POST https://api.deepseek.com/chat/completions "HTTP/1.1 200 OK"
+
+[1m> Finished chain.[0m
+[WARNING] Called Step2VerifierDetailed with response=from typing import Dict, List, Tuple
+import collections
+
+def compute_routing_paths(topo: Dict[str, Dict[int, str]]) -> Dict[str, Dict[str, List[str]]]:
+    # Build graph: adjacency list of devices
+    graph = collections.defaultdict(set)
+    # Build LAN to devices mapping
+    lan_to_devices = collections.defaultdict(set)
+    for device, ports in topo.items():
+        for port, lan in ports.items():
+            lan_to_devices[lan].add(device)
+    # Add edges between devices sharing a LAN
+    for lan, devices in lan_to_devices.items():
+        dev_list = list(devices)
+        for i in range(len(dev_list)):
+            for j in range(i+1, len(dev_list)):
+                graph[dev_list[i]].add(dev_list[j])
+                graph[dev_list[j]].add(dev_list[i])
+    # Identify hosts (device names starting with 'h')
+    hosts = [dev for dev in topo if dev.startswith('h')]
+    # BFS to find shortest path between two devices
+    def bfs_shortest_path(start: str, goal: str) -> List[str]:
+        visited = set()
+        queue = collections.deque([[start]])
+        while queue:
+            path = queue.popleft()
+            node = path[-1]
+            if node == goal:
+                return path
+            if node not in visited:
+                visited.add(node)
+                for neighbor in graph[node]:
+                    if neighbor not in visited:
+                        new_path = list(path) + [neighbor]
+                        queue.append(new_path)
+        return []  # no path
+    # Build result dictionary
+    result = {}
+    for src in hosts:
+        result[src] = {}
+        for dst in hosts:
+            if src == dst:
+                continue
+            path = bfs_shortest_path(src, dst)
+            if path:
+                result[src][dst] = path
+    return result, data={'extend': True, 'input': '\n', 'metadata': {'test_path': '/workspace/research/netconfeval/assets/step_2_tests/path_tests'}}
+[WARNING] Test output ============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/tmpeo1ujs5l
+plugins: anyio-4.14.1
+collecting ... collected 1 item
+run-last-failure: no previously failed tests, not deselecting items.
+
+../../../../tmp/tmpeo1ujs5l/test_code.py::test_gpt_output FAILED         [100%]
+
+=================================== FAILURES ===================================
+_______________________________ test_gpt_output ________________________________
+/tmp/tmpeo1ujs5l/test_code.py:70: in test_gpt_output
+    output = compute_routing_paths(topology_test, None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: compute_routing_paths() takes 1 positional argument but 2 were given
+=========================== short test summary info ============================
+FAILED ../../../../tmp/tmpeo1ujs5l/test_code.py::test_gpt_output - TypeError: compute_routing_paths() takes 1 positional argument but 2 were given
+============================== 1 failed in 0.02s ===============================
+
+[WARNING] Too many failures.

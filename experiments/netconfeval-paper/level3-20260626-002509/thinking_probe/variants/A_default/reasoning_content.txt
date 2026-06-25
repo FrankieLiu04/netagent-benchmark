@@ -1,0 +1,21 @@
+We need to generate Python code for compute_routing_paths function. Input: topology (dict), requirements (optional, default None). Output: dict of paths. The function should compute all-pairs shortest paths between hosts using LANs as edges but then only keep device names (hosts and switches) in path. Use BFS or Dijkstra. Since all edges have same weight, BFS works.
+
+We'll parse topology: graph with nodes (devices) and edges (via LANs). For each device, its connections: port -> LAN. So two devices connected to same LAN are adjacent. Build adjacency list: for each LAN, collect all devices connected. Then for each pair of devices in same LAN, add edge.
+
+But careful: The path should only include switches and hosts, not LANs. So after finding shortest path (list of nodes including LANs? better to include only devices), we need to exclude LANs. Actually BFS on devices: each device is a node, edges exist if they share a LAN. Then paths are lists of devices. Already no LANs.
+
+So algorithm:
+- Create dict: device -> list of neighbor devices.
+- Identify all hosts: devices starting with 'h'.
+- For each host pair (src, dst), run BFS to find shortest path (list of devices). Store in result[src][dst] = path.
+- If no path, maybe skip? But assume all hosts reachable? The problem says "reachable hosts", but we can compute for all pairs that are reachable.
+
+Edge case: multiple paths same length, pick any (first found). BFS gives shortest.
+
+Implementation in Python: use collections.defaultdict, deque.
+
+Return dict.
+
+Now output as JSON with status and result containing function code as string. Need to escape properly.
+
+We'll write function compute_routing_paths(topology, requirements=None).
