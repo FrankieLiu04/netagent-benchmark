@@ -6,7 +6,7 @@ import sys
 
 from .config import ConfigError, load_settings
 from .doctor import run_doctor
-from .mcp_client import list_safe_tools
+from .mcp_client import list_agent_tools
 from .runner import run_agent_task
 
 
@@ -15,12 +15,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fyp-agent", description="FYP CML agent harness")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # fyp-agent run "task" — 执行一次只读 agent 任务
-    run_parser = subparsers.add_parser("run", help="Run one read-only CML agent task")
+    # fyp-agent run "task" — 执行一次 CML agent 任务
+    run_parser = subparsers.add_parser("run", help="Run one CML agent task")
     run_parser.add_argument("task", help="Natural-language task for the agent")
 
-    # fyp-agent tools — 列出当前白名单内的 CML MCP 工具
-    subparsers.add_parser("tools", help="List read-only CML MCP tools exposed to the agent")
+    # fyp-agent tools — 列出当前 Agent 可见的 CML MCP 工具
+    subparsers.add_parser("tools", help="List CML MCP tools exposed to the agent")
 
     # fyp-agent doctor — 诊断运行环境
     subparsers.add_parser("doctor", help="Check LLM provider and CML MCP connectivity")
@@ -44,7 +44,7 @@ async def _main_async(argv: list[str] | None = None) -> int:
 
     if args.command == "tools":
         try:
-            tools = await list_safe_tools(settings)
+            tools = await list_agent_tools(settings)
         except Exception as exc:
             print(f"Failed to list CML MCP tools: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 1

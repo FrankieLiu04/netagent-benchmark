@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fyp_agent.prompts import SYSTEM_PROMPT_READ_ONLY, get_system_prompt
+from fyp_agent.prompts import SYSTEM_PROMPT_FULL_ACCESS, get_system_prompt
 
 
-def test_read_only_prompt_exists():
-    prompt = get_system_prompt("read_only")
-    assert prompt == SYSTEM_PROMPT_READ_ONLY
-    assert "read-only" in prompt.lower()
+def test_full_access_prompt_exists():
+    prompt = get_system_prompt("full_access")
+    assert prompt == SYSTEM_PROMPT_FULL_ACCESS
+    assert "call the relevant MCP tool" in prompt
+    assert "Do not invent" in prompt
     assert "CML" in prompt
 
 

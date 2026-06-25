@@ -16,7 +16,7 @@ from mcp.client.stdio import stdio_client
 from mcp.types import TextContent, Tool
 
 from .config import Settings
-from .tools import SAFE_CML_TOOLS
+from .tools import ALL_CML_TOOLS, ToolAllowlist
 
 
 @dataclass
@@ -42,16 +42,16 @@ def _content_to_text(content_blocks: list[Any]) -> str:
 class CmlMcpSession:
     """封装一次 MCP 会话，提供工具列表和工具调用接口。"""
 
-    def __init__(self, session: ClientSession, allowed: frozenset[str] = SAFE_CML_TOOLS) -> None:
+    def __init__(self, session: ClientSession, allowed: ToolAllowlist = ALL_CML_TOOLS) -> None:
         self._session = session
         self._allowed = allowed
 
     async def list_tools(self) -> list[MCPToolDef]:
-        """列出白名单内的 MCP 工具。"""
+        """列出当前暴露给 Agent 的 MCP 工具。"""
         result = await self._session.list_tools()
         tools: list[MCPToolDef] = []
         for tool in result.tools:
-            if tool.name in self._allowed:
+            if self._allowed is None or tool.name in self._allowed:
                 tools.append(
                     MCPToolDef(
                         name=tool.name,
@@ -64,18 +64,18 @@ class CmlMcpSession:
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
         """调用一个 MCP 工具，返回纯文本结果。
 
-        如果工具不在白名单内，拒绝执行。
+        当 allowed 为 None 时，信任 MCP server 暴露的全部工具；否则按本地集合过滤。
         """
-        if name not in self._allowed:
-            raise PermissionError(f"Tool '{name}' is not in the safe allowlist")
+        if self._allowed is not None and name not in self._allowed:
+            raise PermissionError(f"Tool '{name}' is not in the configured tool allowlist")
 
         result = await self._session.call_tool(name, arguments=arguments)
         return _content_to_text(result.content)
 
     async def call_raw(self, name: str, arguments: dict[str, Any]) -> Any:
         """调用工具并返回原始 MCP result（含 is_error 等元数据）。"""
-        if name not in self._allowed:
-            raise PermissionError(f"Tool '{name}' is not in the safe allowlist")
+        if self._allowed is not None and name not in self._allowed:
+            raise PermissionError(f"Tool '{name}' is not in the configured tool allowlist")
         return await self._session.call_tool(name, arguments=arguments)
 
 
@@ -91,7 +91,7 @@ def cml_mcp_params(settings: Settings) -> StdioServerParameters:
 @asynccontextmanager
 async def cml_mcp_session(
     settings: Settings,
-    allowed: frozenset[str] = SAFE_CML_TOOLS,
+    allowed: ToolAllowlist = ALL_CML_TOOLS,
 ) -> AsyncIterator[CmlMcpSession]:
     """启动 cml-mcp 子进程，建立 MCP 会话，yield CmlMcpSession。
 
@@ -108,8 +108,8 @@ async def cml_mcp_session(
         yield CmlMcpSession(session, allowed=allowed)
 
 
-async def list_safe_tools(settings: Settings) -> list[str]:
-    """启动 MCP server 并列出白名单内的工具名称。"""
+async def list_agent_tools(settings: Settings) -> list[str]:
+    """启动 MCP server 并列出当前 Agent 可见的工具名称。"""
     async with cml_mcp_session(settings) as mcp:
         tools = await mcp.list_tools()
     return sorted(tool.name for tool in tools)

@@ -1,0 +1,22 @@
+# Paper-compatible NetConfEval environment.
+#
+# This file is intentionally separate from pyproject.toml. The main FYP agent
+# uses openai>=2, while the upstream NetConfEval LangChain scripts were probed
+# successfully with langchain-openai==0.1.25 and openai<2.
+
+openai>=1.40,<2
+python-dotenv>=1.0.1
+
+deepdiff>=8.0.0
+sortedcontainers>=2.4.0
+
+langchain>=0.2,<0.3
+langchain-community>=0.2,<0.3
+langchain-openai==0.1.25
+requests-toolbelt>=1.0.0
+tiktoken>=0.7.0
+
+numpy>=1.26,<3
+pandas>=2.0,<3
+networkx>=3.0,<4
+pytest>=8.0,<10

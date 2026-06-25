@@ -21,6 +21,18 @@ def test_run_log_stores_step_trace(tmp_path):
                     "step": 0,
                     "tool_calls": [{"id": "call-0", "name": "get_cml_labs", "arguments": {}}],
                     "tool_results": [{"success": True, "result": "[{\"id\": \"lab-001\"}]"}],
+                    "tool_audit": [
+                        {
+                            "step": 0,
+                            "tool_call_id": "call-0",
+                            "tool_name": "get_cml_labs",
+                            "arguments": {},
+                            "mutating": False,
+                            "success": True,
+                            "elapsed_seconds": 0.12,
+                            "result_size_chars": 19,
+                        }
+                    ],
                     "usage": {"prompt_tokens": 100, "completion_tokens": 20},
                 },
                 {
@@ -29,6 +41,14 @@ def test_run_log_stores_step_trace(tmp_path):
                     "usage": {"prompt_tokens": 200, "completion_tokens": 80},
                 },
             ],
+            "tool_audit_summary": {
+                "total_calls": 1,
+                "mutating_calls": 0,
+                "read_only_calls": 1,
+                "failed_calls": 0,
+                "successful_calls": 1,
+                "tool_names": ["get_cml_labs"],
+            },
             "total_prompt_tokens": 300,
             "total_completion_tokens": 100,
             "final_answer": "Found 1 lab.",
@@ -39,6 +59,8 @@ def test_run_log_stores_step_trace(tmp_path):
     assert payload["steps"] == 2
     assert len(payload["steps_trace"]) == 2
     assert payload["steps_trace"][0]["tool_calls"][0]["name"] == "get_cml_labs"
+    assert payload["steps_trace"][0]["tool_audit"][0]["success"] is True
+    assert payload["tool_audit_summary"]["total_calls"] == 1
     assert payload["total_prompt_tokens"] == 300
     assert payload["total_completion_tokens"] == 100
 
@@ -52,6 +74,12 @@ def test_run_log_does_not_write_secret_fields(tmp_path):
             "OPENAI_API_KEY": "secret",
             "DEEPSEEK_API_KEY": "secret",
             "nested": {"CML_PASSWORD": "secret", "deepseek_api_key": "secret"},
+            "tool_audit": [
+                {
+                    "tool_name": "create_cml_user",
+                    "arguments": {"username": "alice", "password": "secret", "api_token": "secret"},
+                }
+            ],
             "final_answer": "ok",
         },
     )
@@ -61,4 +89,5 @@ def test_run_log_does_not_write_secret_fields(tmp_path):
     assert "DEEPSEEK_API_KEY" not in payload
     assert "CML_PASSWORD" not in payload["nested"]
     assert "deepseek_api_key" not in payload["nested"]
+    assert payload["tool_audit"][0]["arguments"] == {"username": "alice"}
     assert payload["final_answer"] == "ok"

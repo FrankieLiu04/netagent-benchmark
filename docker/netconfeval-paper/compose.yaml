@@ -1,0 +1,17 @@
+services:
+  netconfeval-paper:
+    build:
+      context: ../..
+      dockerfile: docker/netconfeval-paper/Dockerfile
+    image: fyp-netconfeval-paper:latest
+    working_dir: /workspace
+    env_file:
+      - ../../.env
+    environment:
+      NETCONFEVAL_UPSTREAM_URL: https://github.com/RedHatResearch/conext24-NetConfEval.git
+      NETCONFEVAL_UPSTREAM_COMMIT: 24edc15b6f94e1b5805ae904cc05676eca2f02fe
+      NETCONFEVAL_MODEL: deepseek-v4-flash
+      NETCONFEVAL_PROVIDER_MODEL: deepseek-v4-flash
+      NETCONFEVAL_N_RUNS: "1"
+    volumes:
+      - ../..:/workspace

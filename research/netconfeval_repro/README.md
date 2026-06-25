@@ -61,6 +61,21 @@ uv run --extra research --extra netconfeval-sim python ...
 上游旧脚本时，可以继续使用临时 `uv --with ...` 命令；长期维护路径应优先使用本目录的
 adapter 抽象。
 
+## Docker 论文复现环境
+
+Step 1 function-call 和 Step 2 原始 LangChain 脚本可以使用隔离的 Docker 环境运行：
+
+```bash
+docker compose -f docker/netconfeval-paper/compose.yaml build
+docker compose -f docker/netconfeval-paper/compose.yaml run --rm netconfeval-paper \
+  bash docker/netconfeval-paper/scripts/run_smoke.sh
+```
+
+该环境固定旧版 `openai<2` / `langchain-openai==0.1.25` 路线，只用于论文复现。
+如果公司内网使用 Docker Desktop 需要商业授权，应改用合规的 Linux Docker Engine、
+远程实验机或已获批容器平台。
+详细说明见 `docker/netconfeval-paper/README.md`。
+
 ## 后续迁移计划
 
 Step 2 应优先迁移 verifier 边界：

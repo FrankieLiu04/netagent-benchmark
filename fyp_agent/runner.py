@@ -15,7 +15,21 @@ from .loop import AgentLoopResult, StepHook, agent_loop
 from .mcp_client import cml_mcp_session
 from .prompts import get_system_prompt
 from .run_logging import start_run_log, write_run_log
-from .tools import SAFE_CML_TOOLS
+
+
+def summarize_tool_audit(result: AgentLoopResult) -> dict[str, object]:
+    """汇总一次 run 的工具调用审计信息。"""
+    total_calls = len(result.tool_audit)
+    mutating_calls = sum(1 for entry in result.tool_audit if entry.mutating)
+    failed_calls = sum(1 for entry in result.tool_audit if not entry.success)
+    return {
+        "total_calls": total_calls,
+        "mutating_calls": mutating_calls,
+        "read_only_calls": total_calls - mutating_calls,
+        "failed_calls": failed_calls,
+        "successful_calls": total_calls - failed_calls,
+        "tool_names": sorted({entry.tool_name for entry in result.tool_audit}),
+    }
 
 
 @dataclass(frozen=True)
@@ -49,19 +63,20 @@ async def run_agent_task(
         "user_task": task,
         "llm_provider": settings.llm_provider,
         "model_name": settings.model_name,
-        "enabled_tool_names": sorted(SAFE_CML_TOOLS),
+        "tool_exposure": "all",
     }
 
     try:
         async with cml_mcp_session(settings) as mcp:
-            # 获取白名单内的工具定义
+            # 获取当前 MCP server 暴露给 agent 的全部工具定义
             tools = await mcp.list_tools()
+            payload["enabled_tool_names"] = sorted(tool.name for tool in tools)
 
             # 构建 LLM 客户端
             llm = LLMClient.from_settings(settings)
 
             # 执行 agent loop
-            system_prompt = get_system_prompt("read_only")
+            system_prompt = get_system_prompt("full_access")
             result: AgentLoopResult = await agent_loop(
                 task=task,
                 system_prompt=system_prompt,
@@ -78,6 +93,8 @@ async def run_agent_task(
         payload["total_completion_tokens"] = result.total_completion_tokens
         payload["duration_seconds"] = round(result.duration_seconds, 3)
         payload["steps_trace"] = [t.to_dict() for t in result.traces]
+        payload["tool_audit_summary"] = summarize_tool_audit(result)
+        payload["tool_audit"] = [entry.to_dict() for entry in result.tool_audit]
 
         log_path = write_run_log(run_log, payload)
         return AgentRunResult(

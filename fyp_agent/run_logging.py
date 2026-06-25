@@ -11,6 +11,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 
@@ -22,6 +23,13 @@ SECRET_FIELD_NAMES = {
     "DEEPSEEK_API_KEY",
     "CML_PASSWORD",
 }
+
+SECRET_FIELD_MARKERS = (
+    "api_key",
+    "apikey",
+    "password",
+    "secret",
+)
 
 
 @dataclass(frozen=True)
@@ -45,16 +53,35 @@ def start_run_log(task: str, root: Path = Path("experiments/runs")) -> RunLog:
     return RunLog(run_id=run_id, run_dir=run_dir, timestamp=timestamp)
 
 
-def sanitize_payload(payload: dict[str, object]) -> dict[str, object]:
+def is_secret_field(field_name: str) -> bool:
+    """判断字段名是否像密钥字段。"""
+    normalized = field_name.lower()
+    secret_names = {name.lower() for name in SECRET_FIELD_NAMES}
+    return (
+        normalized in secret_names
+        or normalized == "token"
+        or normalized.endswith("_token")
+        or normalized.startswith("token_")
+        or any(marker in normalized for marker in SECRET_FIELD_MARKERS)
+    )
+
+
+def sanitize_value(value: Any) -> Any:
+    """递归移除任意 JSON-like 结构中的密钥字段。"""
+    if isinstance(value, dict):
+        return sanitize_payload(value)
+    if isinstance(value, list):
+        return [sanitize_value(item) for item in value]
+    return value
+
+
+def sanitize_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """递归移除 payload 中的密钥字段（API key、密码等）。"""
-    clean: dict[str, object] = {}
+    clean: dict[str, Any] = {}
     for key, value in payload.items():
-        if key in SECRET_FIELD_NAMES:
+        if is_secret_field(str(key)):
             continue
-        if isinstance(value, dict):
-            clean[key] = sanitize_payload(value)
-        else:
-            clean[key] = value
+        clean[key] = sanitize_value(value)
     return clean
 
 

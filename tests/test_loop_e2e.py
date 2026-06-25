@@ -64,7 +64,7 @@ async def test_agent_loop_e2e():
     async with mock_mcp_session() as mcp:
         result = await agent_loop(
             task="List all CML labs and show server info",
-            system_prompt=get_system_prompt("read_only"),
+            system_prompt=get_system_prompt("full_access"),
             llm=mock_llm,  # type: ignore[arg-type]
             mcp=mcp,
             tools=_mock_tool_defs(),
@@ -83,6 +83,11 @@ async def test_agent_loop_e2e():
         assert step0.llm_response.tool_calls[0].name == "get_cml_labs"
         assert len(step0.tool_results) == 1
         assert step0.tool_results[0]["success"] is True
+        assert len(step0.tool_audit) == 1
+        assert step0.tool_audit[0].tool_name == "get_cml_labs"
+        assert step0.tool_audit[0].mutating is False
+        assert step0.tool_audit[0].success is True
+        assert step0.tool_audit[0].result_size_chars > 0
 
         step1 = result.traces[1]
         assert step1.llm_response.tool_calls[0].name == "get_cml_information"
@@ -98,6 +103,10 @@ async def test_agent_loop_e2e():
         assert result.total_completion_tokens == sum(
             t.llm_response.completion_tokens for t in result.traces
         )
+        assert [entry.tool_name for entry in result.tool_audit] == [
+            "get_cml_labs",
+            "get_cml_information",
+        ]
 
         # 验证 messages 历史
         assert result.messages[0]["role"] == "user"
@@ -139,8 +148,8 @@ async def test_agent_loop_max_steps():
         assert result.final_answer == "checking..."
 
 
-async def test_agent_loop_tool_error_handling():
-    """测试工具调用失败时的错误处理（白名单拒绝）。"""
+async def test_agent_loop_mutating_tool_is_forwarded_to_mcp():
+    """测试 mutating tool 在全工具模式下会透传给 MCP server。"""
     mock_llm = MockLLMClient(
         script=[
             LLMResponse(
@@ -152,7 +161,7 @@ async def test_agent_loop_tool_error_handling():
                 raw_message={},
             ),
             LLMResponse(
-                content="I could not delete the lab as this is a read-only agent.",
+                content="The lab deletion request was sent to CML.",
                 tool_calls=[],
                 finish_reason="stop",
                 prompt_tokens=100,
@@ -172,15 +181,18 @@ async def test_agent_loop_tool_error_handling():
             max_steps=5,
         )
 
-        # 第一步工具调用应该失败（PermissionError），但 loop 应该继续
+        # 第一步工具调用应该成功透传给 MCP server，loop 随后继续
         step0 = result.traces[0]
         assert len(step0.tool_results) == 1
-        assert step0.tool_results[0]["success"] is False
-        assert "PermissionError" in step0.tool_results[0]["error"]
+        assert step0.tool_results[0]["success"] is True
+        assert "delete_cml_lab" in step0.tool_results[0]["result"]
+        assert step0.tool_audit[0].mutating is True
+        assert result.tool_audit[0].tool_name == "delete_cml_lab"
+        assert result.tool_audit[0].arguments == {"lab_id": "x"}
 
         # loop 应该继续到第二步并给出最终答案
         assert result.steps == 2
-        assert "read-only" in result.final_answer.lower()
+        assert "sent to CML" in result.final_answer
 
 
 async def test_agent_loop_with_hook():

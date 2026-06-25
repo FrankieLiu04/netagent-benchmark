@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .config import ConfigError, load_settings
-from .mcp_client import list_safe_tools
+from .mcp_client import list_agent_tools
 
 
 async def run_doctor() -> tuple[int, list[str]]:
@@ -37,12 +37,12 @@ async def run_doctor() -> tuple[int, list[str]]:
 
     # 4. 检查 CML MCP server 是否能启动并列出工具
     try:
-        tools = await list_safe_tools(settings)
+        tools = await list_agent_tools(settings)
     except Exception as exc:
         messages.append(f"FAIL: could not start or query CML MCP server: {type(exc).__name__}: {exc}")
         return 1, messages
 
-    messages.append(f"OK: CML MCP server started and exposed {len(tools)} allowed tools")
+    messages.append(f"OK: CML MCP server started and exposed {len(tools)} tools")
     for tool in tools:
         messages.append(f"  - {tool}")
     return 0, messages

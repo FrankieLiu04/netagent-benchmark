@@ -22,6 +22,7 @@ from typing import Any, Protocol
 
 from .llm import LLMClient, LLMResponse
 from .mcp_client import CmlMcpSession, MCPToolDef
+from .tools import is_mutating_tool
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,43 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 @dataclass
+class ToolAuditEntry:
+    """单次 MCP 工具调用的审计记录。"""
+
+    step: int
+    tool_call_id: str
+    tool_name: str
+    arguments: dict[str, Any]
+    mutating: bool
+    success: bool
+    elapsed_seconds: float
+    result_size_chars: int = 0
+    error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "step": self.step,
+            "tool_call_id": self.tool_call_id,
+            "tool_name": self.tool_name,
+            "arguments": self.arguments,
+            "mutating": self.mutating,
+            "success": self.success,
+            "elapsed_seconds": round(self.elapsed_seconds, 3),
+            "result_size_chars": self.result_size_chars,
+        }
+        if self.error is not None:
+            payload["error"] = self.error
+        return payload
+
+
+@dataclass
 class StepTrace:
     """单个 agent step 的完整记录。"""
 
     step: int
     llm_response: LLMResponse
     tool_results: list[dict[str, Any]] = field(default_factory=list)
+    tool_audit: list[ToolAuditEntry] = field(default_factory=list)
     elapsed_seconds: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,6 +81,7 @@ class StepTrace:
                 for tc in self.llm_response.tool_calls
             ],
             "tool_results": self.tool_results,
+            "tool_audit": [entry.to_dict() for entry in self.tool_audit],
             "usage": {
                 "prompt_tokens": self.llm_response.prompt_tokens,
                 "completion_tokens": self.llm_response.completion_tokens,
@@ -64,6 +97,7 @@ class AgentLoopResult:
     final_answer: str
     steps: int
     traces: list[StepTrace]
+    tool_audit: list[ToolAuditEntry]
     total_prompt_tokens: int
     total_completion_tokens: int
     duration_seconds: float
@@ -77,6 +111,7 @@ class AgentLoopResult:
             "total_completion_tokens": self.total_completion_tokens,
             "duration_seconds": round(self.duration_seconds, 3),
             "steps_trace": [t.to_dict() for t in self.traces],
+            "tool_audit": [entry.to_dict() for entry in self.tool_audit],
         }
 
 
@@ -87,7 +122,7 @@ class AgentLoopResult:
 class StepHook(Protocol):
     """每步结束后的回调，可修改 messages 并返回新 messages。
 
-    Phase 1 不挂任何 hook。Phase 3 可插：
+    默认不挂任何 hook。后续可插：
     - VerificationHook: agent 产出配置后自动验证
     - ReflectionHook: 每 N 步注入反思消息
     - RAGHook: 检测到需要知识时自动检索
@@ -136,6 +171,7 @@ async def agent_loop(
     ]
 
     traces: list[StepTrace] = []
+    tool_audit: list[ToolAuditEntry] = []
     total_prompt = 0
     total_completion = 0
     final_answer = ""
@@ -188,10 +224,13 @@ async def agent_loop(
         messages.append(assistant_msg)
 
         tool_results: list[dict[str, Any]] = []
+        step_tool_audit: list[ToolAuditEntry] = []
         for tc in response.tool_calls:
             logger.info("Step %d: calling tool %s(%s)", step, tc.name, tc.arguments)
+            tool_start = time.monotonic()
             try:
                 result_text = await mcp.call_tool(tc.name, tc.arguments)
+                tool_elapsed = time.monotonic() - tool_start
                 tool_results.append(
                     {
                         "tool_call_id": tc.id,
@@ -207,7 +246,18 @@ async def agent_loop(
                         "content": result_text,
                     }
                 )
+                audit_entry = ToolAuditEntry(
+                    step=step,
+                    tool_call_id=tc.id,
+                    tool_name=tc.name,
+                    arguments=tc.arguments,
+                    mutating=is_mutating_tool(tc.name),
+                    success=True,
+                    elapsed_seconds=tool_elapsed,
+                    result_size_chars=len(result_text),
+                )
             except Exception as exc:
+                tool_elapsed = time.monotonic() - tool_start
                 error_msg = f"{type(exc).__name__}: {exc}"
                 logger.warning("Tool %s failed: %s", tc.name, error_msg)
                 tool_results.append(
@@ -225,12 +275,25 @@ async def agent_loop(
                         "content": f"Error: {error_msg}",
                     }
                 )
+                audit_entry = ToolAuditEntry(
+                    step=step,
+                    tool_call_id=tc.id,
+                    tool_name=tc.name,
+                    arguments=tc.arguments,
+                    mutating=is_mutating_tool(tc.name),
+                    success=False,
+                    elapsed_seconds=tool_elapsed,
+                    error=error_msg,
+                )
+            step_tool_audit.append(audit_entry)
+            tool_audit.append(audit_entry)
 
         elapsed = time.monotonic() - step_start
         trace = StepTrace(
             step=step,
             llm_response=response,
             tool_results=tool_results,
+            tool_audit=step_tool_audit,
             elapsed_seconds=elapsed,
         )
 
@@ -250,6 +313,7 @@ async def agent_loop(
         final_answer=final_answer,
         steps=len(traces),
         traces=traces,
+        tool_audit=tool_audit,
         total_prompt_tokens=total_prompt,
         total_completion_tokens=total_completion,
         duration_seconds=duration,
