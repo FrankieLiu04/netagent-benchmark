@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .artifacts import build_workbench_artifact
 from .config import Settings
 from .llm import LLMClient
 from .loop import AgentLoopResult, StepHook, agent_loop
@@ -95,6 +96,22 @@ async def run_agent_task(
         payload["steps_trace"] = [t.to_dict() for t in result.traces]
         payload["tool_audit_summary"] = summarize_tool_audit(result)
         payload["tool_audit"] = [entry.to_dict() for entry in result.tool_audit]
+        payload.update(
+            build_workbench_artifact(
+                run_id=run_log.run_id,
+                timestamp=run_log.timestamp,
+                task=task,
+                llm_provider=settings.llm_provider,
+                model_name=settings.model_name,
+                run_log_path=run_log.run_dir / "run.json",
+                status="completed",
+                final_answer=result.final_answer,
+                duration_seconds=result.duration_seconds,
+                prompt_tokens=result.total_prompt_tokens,
+                completion_tokens=result.total_completion_tokens,
+                tool_audit_summary=payload["tool_audit_summary"],
+            )
+        )
 
         log_path = write_run_log(run_log, payload)
         return AgentRunResult(
@@ -104,6 +121,18 @@ async def run_agent_task(
         )
     except Exception as exc:
         payload["error_message"] = f"{type(exc).__name__}: {exc}"
+        payload.update(
+            build_workbench_artifact(
+                run_id=run_log.run_id,
+                timestamp=run_log.timestamp,
+                task=task,
+                llm_provider=settings.llm_provider,
+                model_name=settings.model_name,
+                run_log_path=run_log.run_dir / "run.json",
+                status="failed",
+                error_message=payload["error_message"],
+            )
+        )
         log_path = write_run_log(run_log, payload)
         raise RuntimeError(
             f"Agent run failed. Run log written to {log_path}: {exc}"

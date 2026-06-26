@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+from fyp_agent.artifacts import build_workbench_artifact
 from fyp_agent.run_logging import start_run_log, write_run_log
 
 
@@ -91,3 +92,36 @@ def test_run_log_does_not_write_secret_fields(tmp_path):
     assert "deepseek_api_key" not in payload["nested"]
     assert payload["tool_audit"][0]["arguments"] == {"username": "alice"}
     assert payload["final_answer"] == "ok"
+
+
+def test_workbench_artifact_fields_are_stable(tmp_path):
+    run_log = start_run_log("debug bgp neighbor", root=tmp_path)
+    artifact = build_workbench_artifact(
+        run_id=run_log.run_id,
+        timestamp=run_log.timestamp,
+        task="debug bgp neighbor",
+        llm_provider="openai-compatible",
+        model_name="deepseek-v4-flash",
+        run_log_path=run_log.run_dir / "run.json",
+        status="completed",
+        final_answer="BGP neighbor is down.",
+        duration_seconds=1.25,
+        prompt_tokens=100,
+        completion_tokens=40,
+        tool_audit_summary={
+            "total_calls": 2,
+            "mutating_calls": 0,
+            "failed_calls": 1,
+        },
+    )
+
+    path = write_run_log(run_log, {"run_id": run_log.run_id, **artifact})
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    assert payload["workbench_import"]["schema_version"] == "1.0"
+    assert payload["benchmark"]["name"] == "fyp-agent"
+    assert payload["agent"]["model"] == "deepseek-v4-flash"
+    assert payload["result"]["status"] == "completed"
+    assert payload["metrics"]["total_tokens"] == 140
+    assert payload["metrics"]["failed_tool_calls"] == 1
+    assert payload["artifacts"]["run_log_path"].endswith("run.json")
