@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fyp_agent.llm import LLMClient, LLMResponse, ToolCall
-from fyp_agent.mcp_client import MCPToolDef
+from netagent.llm import LLMClient, LLMResponse, ToolCall
+from netagent.mcp_client import MCPToolDef
 
 
 def test_mcp_tools_to_openai_format():

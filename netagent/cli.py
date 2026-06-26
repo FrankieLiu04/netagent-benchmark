@@ -12,17 +12,17 @@ from .runner import run_agent_task
 
 def build_parser() -> argparse.ArgumentParser:
     """构建 CLI 参数解析器，包含 run / tools / doctor 三个子命令。"""
-    parser = argparse.ArgumentParser(prog="fyp-agent", description="FYP CML agent harness")
+    parser = argparse.ArgumentParser(prog="netagent", description="NetAgent CML benchmark harness")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # fyp-agent run "task" — 执行一次 CML agent 任务
+    # netagent run "task" — 执行一次 CML agent 任务
     run_parser = subparsers.add_parser("run", help="Run one CML agent task")
     run_parser.add_argument("task", help="Natural-language task for the agent")
 
-    # fyp-agent tools — 列出当前 Agent 可见的 CML MCP 工具
+    # netagent tools — 列出当前 Agent 可见的 CML MCP 工具
     subparsers.add_parser("tools", help="List CML MCP tools exposed to the agent")
 
-    # fyp-agent doctor — 诊断运行环境
+    # netagent doctor — 诊断运行环境
     subparsers.add_parser("doctor", help="Check LLM provider and CML MCP connectivity")
     return parser
 

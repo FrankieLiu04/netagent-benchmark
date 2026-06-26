@@ -18,13 +18,13 @@ network configuration and troubleshooting experiments.
 
 The current implementation provides a Python agent harness with:
 
-- `fyp-agent doctor` for local environment and connectivity checks.
-- `fyp-agent tools` for listing CML MCP tools visible to the agent.
-- `fyp-agent run "<task>"` for executing one agent task and writing a sanitized
+- `netagent doctor` for local environment and connectivity checks.
+- `netagent tools` for listing CML MCP tools visible to the agent.
+- `netagent run "<task>"` for executing one agent task and writing a sanitized
   `run.json` artifact.
 
-The Python package and CLI are still named `fyp_agent` / `fyp-agent` for
-backward compatibility. The public repository name is `netagent-benchmark`.
+The Python package is `netagent`, and the command-line entry point is
+`netagent`.
 
 ## Architecture
 
@@ -42,7 +42,7 @@ CLI task
 
 ```text
 netagent-benchmark/
-├── fyp_agent/        # Python agent harness, MCP client, CLI, run logging
+├── netagent/        # Python agent harness, MCP client, CLI, run logging
 ├── tests/            # Unit and integration-style tests with local mocks
 ├── docs/             # Public project notes and archived presentation material
 ├── research/         # Literature review and research context
@@ -76,14 +76,14 @@ Run checks:
 
 ```bash
 uv run python -m pytest tests/ -v
-uv run python -m fyp_agent doctor
-uv run python -m fyp_agent tools
+uv run python -m netagent doctor
+uv run python -m netagent tools
 ```
 
 Run an agent task:
 
 ```bash
-uv run python -m fyp_agent run "list all CML labs"
+uv run python -m netagent run "list all CML labs"
 ```
 
 ## Run Artifacts

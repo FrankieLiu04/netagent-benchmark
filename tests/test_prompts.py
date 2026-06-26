@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fyp_agent.prompts import SYSTEM_PROMPT_FULL_ACCESS, get_system_prompt
+from netagent.prompts import SYSTEM_PROMPT_FULL_ACCESS, get_system_prompt
 
 
 def test_full_access_prompt_exists():

@@ -1,5 +1,5 @@
 [project]
-name = "fyp-agent"
+name = "netagent"
 version = "0.1.0"
 description = "Agent harness for LLM-driven Cisco Modeling Labs experiments."
 readme = "README.md"
@@ -23,7 +23,7 @@ research = [
 ]
 
 [project.scripts]
-fyp-agent = "fyp_agent.cli:main"
+netagent = "netagent.cli:main"
 
 [build-system]
 requires = ["setuptools>=69.0"]
@@ -31,7 +31,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = [
-    "fyp_agent",
+    "netagent",
     "research",
 ]
 

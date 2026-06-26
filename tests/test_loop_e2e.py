@@ -18,10 +18,10 @@ import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from fyp_agent.llm import LLMResponse, ToolCall
-from fyp_agent.loop import agent_loop
-from fyp_agent.mcp_client import CmlMcpSession, MCPToolDef
-from fyp_agent.prompts import get_system_prompt
+from netagent.llm import LLMResponse, ToolCall
+from netagent.loop import agent_loop
+from netagent.mcp_client import CmlMcpSession, MCPToolDef
+from netagent.prompts import get_system_prompt
 
 # 确保能导入 tests.mocks
 sys.path.insert(0, str(Path(__file__).parent.parent))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from fyp_agent.config import ConfigError, Settings, load_settings
+from netagent.config import ConfigError, Settings, load_settings
 
 
 def test_missing_env_has_clear_error(tmp_path, monkeypatch):

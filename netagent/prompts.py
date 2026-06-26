@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-SYSTEM_PROMPT_FULL_ACCESS = """You are a CML network lab assistant for an academic FYP.
+SYSTEM_PROMPT_FULL_ACCESS = """You are a CML network lab assistant for network automation experiments.
 
 You help inspect, build, modify, operate, and troubleshoot Cisco Modeling Labs
 (CML) through MCP tools. Use the available tools proactively when the task needs

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 
-from fyp_agent.artifacts import build_workbench_artifact
-from fyp_agent.run_logging import start_run_log, write_run_log
+from netagent.artifacts import build_workbench_artifact
+from netagent.run_logging import start_run_log, write_run_log
 
 
 def test_run_log_stores_step_trace(tmp_path):
@@ -119,7 +119,7 @@ def test_workbench_artifact_fields_are_stable(tmp_path):
     payload = json.loads(path.read_text(encoding="utf-8"))
 
     assert payload["workbench_import"]["schema_version"] == "1.0"
-    assert payload["benchmark"]["name"] == "fyp-agent"
+    assert payload["benchmark"]["name"] == "netagent"
     assert payload["agent"]["model"] == "deepseek-v4-flash"
     assert payload["result"]["status"] == "completed"
     assert payload["metrics"]["total_tokens"] == 140

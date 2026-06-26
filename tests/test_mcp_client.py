@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import sys
 
-from fyp_agent.config import Settings
-from fyp_agent.mcp_client import cml_mcp_params
+from netagent.config import Settings
+from netagent.mcp_client import cml_mcp_params
 
 
 def test_cml_mcp_params_uses_python_with_cml_mcp_module():

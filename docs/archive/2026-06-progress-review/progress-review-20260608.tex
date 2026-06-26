@@ -1,5 +1,5 @@
 % !TEX program = xelatex
-% FYP Progress Review — 8 June 2026
+% Progress Review — 8 June 2026
 % Vibe Networking: Network Engineering (YBL1)
 
 \documentclass[11pt,aspectratio=169]{beamer}
@@ -17,10 +17,10 @@
 \usefonttheme{professionalfonts}
 
 % ── Metadata ─────────────────────────────────────────────────────────────────
-\title[FYP Progress Review]{Vibe Networking --- Network Engineering}
-\subtitle{FYP Progress Review}
-\author[FYP Student]
-       {FYP Student\\[4pt]
+\title[Progress Review]{Vibe Networking --- Network Engineering}
+\subtitle{Progress Review}
+\author[Student]
+       {Student\\[4pt]
         \small Vibe Networking --- Network Engineering}
 \date{8 June 2026}
 \institute{Information Engineering Final Year Project}
@@ -125,7 +125,7 @@
       box/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.8cm, align=center, fill=blue!10},
       arrow/.style={->, >=stealth, thick}
     ]
-    \node[box] (cli) {CLI\\\texttt{fyp-agent run}};
+    \node[box] (cli) {CLI\\\texttt{netagent run}};
     \node[box, right=of cli] (runner) {Runner\\task orchestration};
     \node[box, right=of runner] (agent) {Agent\\tool-calling loop};
     \node[box, right=of agent] (mcp) {MCP Server\\stdio JSON-RPC};
@@ -186,7 +186,7 @@
 \end{frame}
 
 \begin{frame}{Progress: Agent Demo}
-  \textbf{Example Run}: \texttt{fyp-agent run "list all labs on CML"}
+  \textbf{Example Run}: \texttt{netagent run "list all labs on CML"}
 
   \vspace{6pt}
   \begin{block}{Agent Output (excerpt)}

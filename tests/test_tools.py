@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fyp_agent.tools import ALL_CML_TOOLS, filter_tool_names, is_allowed_tool, is_mutating_tool
+from netagent.tools import ALL_CML_TOOLS, filter_tool_names, is_allowed_tool, is_mutating_tool
 
 
 def test_default_tool_policy_accepts_all_tools():

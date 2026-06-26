@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from fyp_agent.llm import LLMClient, LLMResponse, ToolCall
+from netagent.llm import LLMClient, LLMResponse, ToolCall
 
 
 def _make_tool_call_response(

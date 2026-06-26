@@ -33,7 +33,7 @@ def build_workbench_artifact(
     audit = tool_audit_summary or {}
     return {
         "benchmark": {
-            "name": "fyp-agent",
+            "name": "netagent",
             "case_id": run_id,
             "level": "agent-run",
         },
