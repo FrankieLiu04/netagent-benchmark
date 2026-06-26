@@ -1,12 +1,12 @@
-# FYP: Vibe Networking - Network Engineering
+# netagent-benchmark
 
 ---
 
 ## Project Background
 
-This repository contains an FYP research prototype for the CUHK Information
-Engineering topic **Vibe Networking - Network Engineering**. The project was
-framed around three preparation stages:
+`netagent-benchmark` is an FYP research prototype for LLM-driven network
+engineering agents and benchmarks. The project was framed around three
+preparation stages:
 
 1. Learn to program LLMs through API access and build an agent harness.
 2. Build layer-3 Cisco routing knowledge at roughly CCNP Route level.
@@ -41,7 +41,7 @@ Cisco Modeling Labs（CML），通过 MCP server 让 LLM agent 与 CML 交互。
 ## 仓库结构
 
 ```text
-FYP/
+netagent-benchmark/
 ├── fyp_agent/          # Agent harness、MCP 集成、CLI（Python 包）
 ├── tests/              # 单元测试
 ├── docs/               # Public-safe project notes and slides
