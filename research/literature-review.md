@@ -82,7 +82,7 @@ Multi-agent LLM architectures that decompose natural-language network configurat
 
 **No existing benchmark or framework integrates the MCP (Model Context Protocol) standard** for LLM-to-network-device communication. NetConfEval, NetConfBench, Cornetto, and NetArena all use custom Agent-Network Interfaces or direct API calls.
 
-Our FYP's use of [Cisco CML's MCP server](https://github.com/xorrkaz/cml-mcp) to bridge LLMs with network devices fills a **genuine gap** in the research landscape.
+This project's use of [Cisco CML's MCP server](https://github.com/xorrkaz/cml-mcp) to bridge LLMs with network devices fills a **genuine gap** in the research landscape.
 
 ## 7. MCP-Related IETF Drafts
 
@@ -97,7 +97,7 @@ Our FYP's use of [Cisco CML's MCP server](https://github.com/xorrkaz/cml-mcp) to
 
 ---
 
-## Open Questions for Our FYP
+## Open Questions
 
 1. How does Cisco CML's MCP server compare to NetConfBench's custom Agent-Network Interface in terms of latency, reliability, and LLM usability?
 2. Can iterative formal-verification-guided workflows from Cornetto be integrated with the MCP-based CML interface?

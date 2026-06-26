@@ -1,89 +1,120 @@
 # netagent-benchmark
 
----
+`netagent-benchmark` is a research prototype for LLM-driven network
+engineering agents and benchmarks. It connects an LLM agent to Cisco Modeling
+Labs (CML) through Cisco's MCP server, then records sanitized run artifacts for
+network configuration and troubleshooting experiments.
 
-## Project Background
+## Goals
 
-`netagent-benchmark` is an FYP research prototype for LLM-driven network
-engineering agents and benchmarks. The project was framed around three
-preparation stages:
+1. Build a benchmark harness for network configuration tasks.
+2. Study where LLMs fail in L2/L3 network engineering workflows.
+3. Explore improvement strategies such as RAG, multi-agent coordination, and
+   verification loops.
+4. Generate stable run artifacts that can be imported by a separate experiment
+   tracking backend.
 
-1. Learn to program LLMs through API access and build an agent harness.
-2. Build layer-3 Cisco routing knowledge at roughly CCNP Route level.
-3. Connect Cisco Modeling Labs (CML) with an LLM agent through Cisco's MCP
-   server, then evaluate network configuration and troubleshooting tasks.
+## Current Status
 
-## 项目概览
+The current implementation provides a Python agent harness with:
 
-本项目探索如何将 **LLM 应用于二层/三层网络工程**，主要实验平台为
-Cisco Modeling Labs（CML），通过 MCP server 让 LLM agent 与 CML 交互。
+- `fyp-agent doctor` for local environment and connectivity checks.
+- `fyp-agent tools` for listing CML MCP tools visible to the agent.
+- `fyp-agent run "<task>"` for executing one agent task and writing a sanitized
+  `run.json` artifact.
 
-### 三个核心目标
+The Python package and CLI are still named `fyp_agent` / `fyp-agent` for
+backward compatibility. The public repository name is `netagent-benchmark`.
 
-1. 建立面向网络配置任务的 **LLM benchmark**。
-2. 找出 LLM 在网络配置中的局限，并探索改进方案（RAG、多 agent、verification loop）。
-3. 探索 **LLM-driven 自动网络故障排查**。
+## Architecture
 
----
+```text
+CLI task
+  -> runner
+  -> OpenAI-compatible LLM client
+  -> ReAct-style agent loop
+  -> CML MCP stdio session
+  -> Cisco Modeling Labs
+  -> sanitized run artifact
+```
 
-## 当前阶段
-
-**Phase 1（已完成）**：Agent harness + CML MCP 集成。
-
-- `fyp-agent doctor` — 诊断连通性
-- `fyp-agent run "<task>"` — 执行 Agent 任务
-- `fyp-agent tools` — 列出可用 MCP 工具
-
-**下一步**：Phase 2（Cisco 路由知识学习）+ Phase 3（CML + LLM 深度集成）。
-
----
-
-## 仓库结构
+## Repository Layout
 
 ```text
 netagent-benchmark/
-├── fyp_agent/          # Agent harness、MCP 集成、CLI（Python 包）
-├── tests/              # 单元测试
-├── docs/               # Public-safe project notes and slides
-├── research/           # 文献综述
-├── experiments/        # Agent 运行日志（自动生成 run.json）
-└── notes/              # 会议记录、学习笔记
+├── fyp_agent/        # Python agent harness, MCP client, CLI, run logging
+├── tests/            # Unit and integration-style tests with local mocks
+├── docs/             # Public project notes and archived presentation material
+├── research/         # Literature review and research context
+├── experiments/      # Local run artifacts; generated runs are git-ignored
+├── AGENTS.md         # Instructions for coding agents working in this repo
+└── README.md
 ```
 
----
+## Quick Start
 
-## 快速开始
+Install `uv` if needed:
 
 ```bash
-# 安装 uv（如未安装）
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 配置环境
-cp .env.example .env   # 然后编辑 .env，填入 CML 凭据和 LLM API key
-
-# 安装依赖
-uv sync --extra dev
-
-# 诊断
-uv run python -m fyp_agent doctor
-
-# 运行
-uv run python -m fyp_agent run "列出 CML 上所有 lab"
 ```
 
-每次 run 会在 `experiments/runs/<run-id>/run.json` 写入脱敏日志，并包含
-`workbench_import`、`benchmark`、`agent`、`result`、`metrics`、`artifacts`
-字段，供旁边的 Java workbench 导入。
+Create a local environment file:
 
-> 📘 **AI coding agent 协作规范、编码约定、架构决策、已知坑位**：见 [`AGENTS.md`](AGENTS.md)。
+```bash
+cp .env.example .env
+```
 
-## 参考方向
+Fill in the required CML and LLM credentials in `.env`, then install
+dependencies:
 
+```bash
+uv sync --extra dev
+```
+
+Run checks:
+
+```bash
+uv run python -m pytest tests/ -v
+uv run python -m fyp_agent doctor
+uv run python -m fyp_agent tools
+```
+
+Run an agent task:
+
+```bash
+uv run python -m fyp_agent run "list all CML labs"
+```
+
+## Run Artifacts
+
+Each run writes a sanitized artifact to:
+
+```text
+experiments/runs/<run-id>/run.json
+```
+
+The artifact includes stable top-level fields for downstream ingestion:
+
+- `workbench_import`
+- `benchmark`
+- `agent`
+- `result`
+- `metrics`
+- `artifacts`
+
+Full step traces and tool audit records are also stored in the same `run.json`
+for debugging and evaluation.
+
+## Relationship With `agent-eval-workbench`
+
+`netagent-benchmark` owns agent execution, CML/MCP integration, and run artifact
+generation. [`agent-eval-workbench`](https://github.com/FrankieLiu04/agent-eval-workbench)
+owns the Java Spring Boot backend for importing artifacts, tracking
+experiments, and comparing evaluation results.
+
+## Research Notes
+
+- [Literature review](research/literature-review.md)
+- [Project topic summary](docs/topic.md)
 - [NetConfBench IETF Draft](https://datatracker.ietf.org/doc/draft-cui-nmrg-llm-benchmark/01/)
-
----
-
-## 文献综述
-
-详见 `research/literature-review.md`。该文件整理了 LLM 应用于网络配置和故障排查的
-相关研究、benchmark、局限性和本 FYP 可以切入的研究 gap。

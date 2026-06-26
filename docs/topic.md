@@ -1,6 +1,6 @@
 # YBL1: Vibe Networking — Network Engineering
 
-- **Context**: CUHK Information Engineering final year project topic
+- **Context**: Research prototype for LLM-driven network engineering
 - **Area**: LLM agents for network engineering
 
 ## Description
