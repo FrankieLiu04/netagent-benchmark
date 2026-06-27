@@ -15,11 +15,8 @@ DEFAULT_MAX_TURNS = 6
 
 
 class Settings(BaseModel):
-    """Agent 运行时配置，从 .env 文件加载。
-
-    支持 OpenAI 和 DeepSeek 两种 LLM provider，
-    通过 LLM_PROVIDER 环境变量切换。
-    """
+    # EN: Agent runtime settings loaded from .env.
+    # CN: 从 .env 加载 agent 运行时配置。
 
     llm_provider: Literal["openai", "deepseek"] = "deepseek"
     llm_model: str | None = None
@@ -31,12 +28,14 @@ class Settings(BaseModel):
     cml_password: str = Field(..., min_length=1)
     cml_verify_ssl: bool = False
     max_turns: int = Field(default=DEFAULT_MAX_TURNS, ge=1, le=20)
-    # MCP server 会话超时（秒），冷启动首次可能较长
+    # EN: Cold MCP startup can exceed normal request latency.
+    # CN: MCP 冷启动可能超过普通请求耗时。
     mcp_timeout_seconds: float = Field(default=30.0, ge=1.0, le=300.0)
 
     @model_validator(mode="after")
     def require_provider_key(self) -> "Settings":
-        """确保当前 provider 对应的 API key 已设置。"""
+        # EN: Require the API key for the selected provider.
+        # CN: 确保当前 provider 对应的 API key 已设置。
         if self.llm_provider == "openai" and not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
         if self.llm_provider == "deepseek" and not self.deepseek_api_key:
@@ -58,7 +57,8 @@ class Settings(BaseModel):
         raise ValueError(f"invalid boolean value: {value!r}")
 
     def cml_env(self) -> dict[str, str]:
-        """构建传递给 cml-mcp 子进程的环境变量。"""
+        # EN: Build environment variables for the cml-mcp subprocess.
+        # CN: 构建传递给 cml-mcp 子进程的环境变量。
         return {
             "CML_URL": self.cml_url,
             "CML_USERNAME": self.cml_username,
@@ -88,7 +88,9 @@ class Settings(BaseModel):
 
 
 class ConfigError(RuntimeError):
-    """Raised when required runtime configuration is missing or invalid."""
+    # EN: Raised when required runtime configuration is missing or invalid.
+    # CN: 运行配置缺失或无效时抛出。
+    pass
 
 
 def load_settings(env_file: str | Path = ".env") -> Settings:

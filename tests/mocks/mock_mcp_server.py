@@ -1,9 +1,5 @@
-"""Mock MCP server — 用 mcp SDK 实现的本地假 CML server，用于无内网环境下的测试。
-
-通过 stdio transport 启动，模拟 cml-mcp 的工具列表和返回值。
-真实 cml-mcp 启动方式是 `python -m cml_mcp`，这个 mock 启动方式是
-`python -m tests.mocks.mock_mcp_server`。
-"""
+# EN: Local mock CML MCP server for tests without intranet access.
+# CN: 用 mcp SDK 实现的本地 mock CML MCP server。
 
 from __future__ import annotations
 

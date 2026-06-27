@@ -1,7 +1,5 @@
-"""Mock LLM 客户端 — 模拟 LLM 的 tool-calling 行为，用于无 API 环境下的测试。
-
-按预设脚本返回响应：第一次调用返回 tool_call，第二次返回最终答案。
-"""
+# EN: Mock LLM client for tool-calling tests without an API.
+# CN: 用于无 API 环境下测试 tool-calling 的 mock LLM 客户端。
 
 from __future__ import annotations
 
@@ -43,13 +41,8 @@ def _make_final_response(answer: str, step: int) -> LLMResponse:
 
 
 class MockLLMClient:
-    """模拟 LLM 客户端，按脚本返回预设响应。
-
-    默认行为：
-    - Step 0: 调用 get_cml_labs（无参数）
-    - Step 1: 调用 get_cml_information（无参数）
-    - Step 2: 返回最终答案
-    """
+    # EN: Mock LLM client that returns scripted responses.
+    # CN: 按脚本返回预设响应的 mock LLM 客户端。
 
     def __init__(self, script: list[LLMResponse] | None = None) -> None:
         if script is None:

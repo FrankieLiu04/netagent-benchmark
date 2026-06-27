@@ -8,7 +8,6 @@ from netagent.mcp_client import MCPToolDef
 
 
 def test_mcp_tools_to_openai_format():
-    """验证 MCP 工具定义能正确转换为 OpenAI function tool 格式。"""
     tools = [
         MCPToolDef(
             name="get_cml_labs",
@@ -35,7 +34,6 @@ def test_mcp_tools_to_openai_format():
 
 
 def test_llm_response_dataclass():
-    """验证 LLMResponse 数据结构。"""
     resp = LLMResponse(
         content="hello",
         tool_calls=[ToolCall(id="tc1", name="get_cml_labs", arguments={})],

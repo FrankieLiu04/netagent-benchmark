@@ -1,14 +1,12 @@
-"""工具暴露与审计策略 — 控制 Agent 可以调用哪些 CML MCP 工具。
-
-当前项目调性偏向快速、合理的试错和迭代：默认信任 cml-mcp server 暴露的全部工具。
-如果后续需要收紧范围，可以把 `ALL_CML_TOOLS` 替换为具体 frozenset。
-"""
+# EN: Tool exposure and audit policy for CML MCP tools.
+# CN: 控制 agent 可见的 CML MCP 工具与审计判断。
 
 from __future__ import annotations
 
 ToolAllowlist = frozenset[str] | None
 
-# None 表示不做本地白名单过滤：MCP server 动态列出的工具都会暴露给 agent。
+# EN: None keeps the MCP server as the single source of visible tools.
+# CN: None 表示以 MCP server 动态列出的工具为准。
 ALL_CML_TOOLS: ToolAllowlist = None
 
 MUTATING_TOOL_PREFIXES = (
@@ -40,5 +38,6 @@ def filter_tool_names(tool_names: list[str], allowed_tools: ToolAllowlist = ALL_
 
 
 def is_mutating_tool(tool_name: str) -> bool:
-    """根据 cml-mcp 工具命名约定判断工具是否可能修改 CML 状态。"""
+    # EN: Detect likely CML mutations from cml-mcp tool names.
+    # CN: 根据 cml-mcp 工具名判断是否可能修改 CML 状态。
     return tool_name.startswith(MUTATING_TOOL_PREFIXES)

@@ -1,8 +1,5 @@
-"""Run 日志 — 将每次 agent 执行的结果序列化为 JSON，自动脱敏。
-
-每次 run 在 experiments/runs/ 下创建独立目录，
-写入 run.json（已过滤密钥字段）。
-"""
+# EN: Run logging with JSON serialization and secret redaction.
+# CN: 将每次 agent run 写入已脱敏的 JSON 日志。
 
 from __future__ import annotations
 
@@ -45,7 +42,8 @@ def make_slug(text: str, max_length: int = 48) -> str:
 
 
 def start_run_log(task: str, root: Path = Path("experiments/runs")) -> RunLog:
-    """创建一次 run 的日志目录，返回 RunLog 元数据。"""
+    # EN: Create a run log directory and return its metadata.
+    # CN: 创建 run 日志目录并返回元数据。
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{timestamp}-{uuid4().hex[:8]}"
     run_dir = root / f"{run_id}-{make_slug(task)}"
@@ -54,7 +52,8 @@ def start_run_log(task: str, root: Path = Path("experiments/runs")) -> RunLog:
 
 
 def is_secret_field(field_name: str) -> bool:
-    """判断字段名是否像密钥字段。"""
+    # EN: Check whether a field name looks secret-bearing.
+    # CN: 判断字段名是否像密钥字段。
     normalized = field_name.lower()
     secret_names = {name.lower() for name in SECRET_FIELD_NAMES}
     return (
@@ -67,7 +66,8 @@ def is_secret_field(field_name: str) -> bool:
 
 
 def sanitize_value(value: Any) -> Any:
-    """递归移除任意 JSON-like 结构中的密钥字段。"""
+    # EN: Recursively remove secret fields from JSON-like values.
+    # CN: 递归移除 JSON-like 结构中的密钥字段。
     if isinstance(value, dict):
         return sanitize_payload(value)
     if isinstance(value, list):
@@ -76,7 +76,8 @@ def sanitize_value(value: Any) -> Any:
 
 
 def sanitize_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    """递归移除 payload 中的密钥字段（API key、密码等）。"""
+    # EN: Redact API keys, passwords, and similar payload fields.
+    # CN: 脱敏 payload 中的 API key、密码等字段。
     clean: dict[str, Any] = {}
     for key, value in payload.items():
         if is_secret_field(str(key)):
@@ -86,7 +87,8 @@ def sanitize_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def write_run_log(run_log: RunLog, payload: dict[str, object]) -> Path:
-    """将脱敏后的 payload 写入 run.json，返回文件路径。"""
+    # EN: Write the redacted payload to run.json.
+    # CN: 将脱敏后的 payload 写入 run.json。
     path = run_log.run_dir / "run.json"
     clean = sanitize_payload(payload)
     path.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n", encoding="utf-8")

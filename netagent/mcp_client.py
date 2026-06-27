@@ -1,8 +1,5 @@
-"""MCP 客户端 — 通过 mcp SDK 直连 cml-mcp 子进程（stdio transport）。
-
-替代旧版 agents.mcp.MCPServerStdio，直接使用 mcp.ClientSession
-管理 JSON-RPC 通信，暴露 list_tools / call_tool 两个核心方法。
-"""
+# EN: MCP client using the MCP SDK to reach cml-mcp over stdio.
+# CN: 通过 MCP SDK 以 stdio 直连 cml-mcp 子进程。
 
 from __future__ import annotations
 
@@ -21,7 +18,8 @@ from .tools import ALL_CML_TOOLS, ToolAllowlist
 
 @dataclass
 class MCPToolDef:
-    """单个 MCP 工具的定义，用于转换为 LLM function-calling schema。"""
+    # EN: Single MCP tool definition for LLM function-calling schemas.
+    # CN: 单个 MCP 工具定义，用于转换为 LLM function-calling schema。
 
     name: str
     description: str
@@ -29,7 +27,8 @@ class MCPToolDef:
 
 
 def _content_to_text(content_blocks: list[Any]) -> str:
-    """将 MCP call_tool 返回的 content blocks 提取为纯文本。"""
+    # EN: Extract plain text from MCP call_tool content blocks.
+    # CN: 从 MCP call_tool content blocks 中提取纯文本。
     parts: list[str] = []
     for block in content_blocks:
         if isinstance(block, TextContent):
@@ -40,14 +39,16 @@ def _content_to_text(content_blocks: list[Any]) -> str:
 
 
 class CmlMcpSession:
-    """封装一次 MCP 会话，提供工具列表和工具调用接口。"""
+    # EN: Wrap one MCP session with tool listing and tool calls.
+    # CN: 封装一次 MCP 会话，提供工具列表和工具调用接口。
 
     def __init__(self, session: ClientSession, allowed: ToolAllowlist = ALL_CML_TOOLS) -> None:
         self._session = session
         self._allowed = allowed
 
     async def list_tools(self) -> list[MCPToolDef]:
-        """列出当前暴露给 Agent 的 MCP 工具。"""
+        # EN: List MCP tools currently exposed to the agent.
+        # CN: 列出当前暴露给 agent 的 MCP 工具。
         result = await self._session.list_tools()
         tools: list[MCPToolDef] = []
         for tool in result.tools:
@@ -62,10 +63,8 @@ class CmlMcpSession:
         return tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
-        """调用一个 MCP 工具，返回纯文本结果。
-
-        当 allowed 为 None 时，信任 MCP server 暴露的全部工具；否则按本地集合过滤。
-        """
+        # EN: Call one MCP tool and return a plain-text result.
+        # CN: 调用一个 MCP 工具，并返回纯文本结果。
         if self._allowed is not None and name not in self._allowed:
             raise PermissionError(f"Tool '{name}' is not in the configured tool allowlist")
 
@@ -73,14 +72,16 @@ class CmlMcpSession:
         return _content_to_text(result.content)
 
     async def call_raw(self, name: str, arguments: dict[str, Any]) -> Any:
-        """调用工具并返回原始 MCP result（含 is_error 等元数据）。"""
+        # EN: Call a tool and return the raw MCP result metadata.
+        # CN: 调用工具并返回原始 MCP result 元数据。
         if self._allowed is not None and name not in self._allowed:
             raise PermissionError(f"Tool '{name}' is not in the configured tool allowlist")
         return await self._session.call_tool(name, arguments=arguments)
 
 
 def cml_mcp_params(settings: Settings) -> StdioServerParameters:
-    """构建启动 cml-mcp 子进程的参数。"""
+    # EN: Build parameters for starting the cml-mcp subprocess.
+    # CN: 构建启动 cml-mcp 子进程的参数。
     return StdioServerParameters(
         command=sys.executable,
         args=["-m", "cml_mcp"],
@@ -93,12 +94,11 @@ async def cml_mcp_session(
     settings: Settings,
     allowed: ToolAllowlist = ALL_CML_TOOLS,
 ) -> AsyncIterator[CmlMcpSession]:
-    """启动 cml-mcp 子进程，建立 MCP 会话，yield CmlMcpSession。
-
-    退出时自动关闭子进程和会话。
-    """
+    # EN: Start cml-mcp and yield an initialized MCP session.
+    # CN: 启动 cml-mcp 并返回已初始化的 MCP 会话。
     params = cml_mcp_params(settings)
-    # 用 AsyncExitStack 管理嵌套的 async context managers
+    # EN: AsyncExitStack keeps both stdio and MCP sessions closed together.
+    # CN: AsyncExitStack 统一关闭 stdio 与 MCP 会话。
     async with AsyncExitStack() as stack:
         read_stream, write_stream = await stack.enter_async_context(stdio_client(params))
         session = await stack.enter_async_context(
@@ -109,7 +109,8 @@ async def cml_mcp_session(
 
 
 async def list_agent_tools(settings: Settings) -> list[str]:
-    """启动 MCP server 并列出当前 Agent 可见的工具名称。"""
+    # EN: Start the MCP server and list tool names visible to the agent.
+    # CN: 启动 MCP server 并列出 agent 可见的工具名称。
     async with cml_mcp_session(settings) as mcp:
         tools = await mcp.list_tools()
     return sorted(tool.name for tool in tools)
