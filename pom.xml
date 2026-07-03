@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.frankliu</groupId>
+    <artifactId>netagent-benchmark</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>Netagent Benchmark</name>
+    <description>Java agent harness for LLM-driven Cisco Modeling Labs benchmark experiments.</description>
+
+    <properties>
+        <java.version>25</java.version>
+        <mcp.sdk.version>2.0.0</mcp.sdk.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-bom</artifactId>
+                <version>${mcp.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-json-jackson2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

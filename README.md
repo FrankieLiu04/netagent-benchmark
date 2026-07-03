@@ -16,15 +16,34 @@ network configuration and troubleshooting experiments.
 
 ## Current Status
 
-The current implementation provides a Python agent harness with:
+The benchmark harness is now implemented in Java to align with the adjacent
+Spring Boot workbench. It provides:
 
-- `netagent doctor` for local environment and connectivity checks.
-- `netagent tools` for listing CML MCP tools visible to the agent.
-- `netagent run "<task>"` for executing one agent task and writing a sanitized
-  `run.json` artifact.
+- Java 25 / Spring Boot 4.1 Maven build metadata.
+- Environment-backed Java runtime settings for model, CML, turn budget, timeout,
+  and run artifact location.
+- Workbench-compatible `run.json` artifact records.
+- A typed Java agent loop with LLM and MCP adapter interfaces.
+- A lightweight OpenAI-compatible Java LLM adapter built on JDK `HttpClient`.
+- A typed CML MCP stdio adapter built on the official MCP Java SDK.
+- Secret redaction and run-log writing.
+- A minimal `artifact-smoke` CLI command for writing a dry-run artifact without
+  calling an LLM or CML.
+- A `loop-smoke` CLI command that executes the Java loop with scripted LLM and
+  MCP clients, then writes a trace-bearing `run.json`.
+- An `llm-smoke` CLI command that uses a real OpenAI-compatible LLM endpoint
+  with no CML tools.
+- A `tools` CLI command that starts `cml-mcp` through the official MCP Java SDK
+  and lists tools exposed by Cisco Modeling Labs.
+- A `doctor` CLI command for checking runtime configuration and CML MCP tool
+  discovery.
+- A `run` CLI command that executes the Java agent with a real OpenAI-compatible
+  LLM and real CML MCP tools, then writes the workbench-compatible run artifact.
 
-The Python package is `netagent`, and the command-line entry point is
-`netagent`.
+The repository no longer contains a Python benchmark implementation. The Java
+runtime can still start an external CML MCP server over stdio; by default that
+command is `python -m cml_mcp` because Cisco's `cml-mcp` package is distributed
+for Python.
 
 ## Architecture
 
@@ -42,8 +61,8 @@ CLI task
 
 ```text
 netagent-benchmark/
-├── netagent/        # Python agent harness, MCP client, CLI, run logging
-├── tests/            # Unit and integration-style tests with local mocks
+├── src/main/java/    # Java agent harness, MCP client, CLI, and run logging
+├── src/test/java/    # Java unit and integration-style tests with local mocks
 ├── docs/             # Public project notes and archived presentation material
 ├── research/         # Literature review and research context
 ├── experiments/      # Local run artifacts; generated runs are git-ignored
@@ -53,37 +72,39 @@ netagent-benchmark/
 
 ## Quick Start
 
-Install `uv` if needed:
-
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+mvn test
+mvn package
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar artifact-smoke "list all CML labs"
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar loop-smoke "list all CML labs"
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar llm-smoke "summarize OSPF in one sentence"
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar run "list all CML labs"
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar doctor
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar tools
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar mcp-spec
 ```
 
-Create a local environment file:
+Use `.env.example` as a local template for shell, IDE, Docker, or deployment
+environment variables:
 
 ```bash
 cp .env.example .env
 ```
 
-Fill in the required CML and LLM credentials in `.env`, then install
-dependencies:
+The Java runtime reads process environment variables. It does not parse `.env`
+files itself. For local shell runs, export the variables before launching the
+jar, or let your IDE/container tooling load them.
+
+Install Java dependencies through Maven:
 
 ```bash
-uv sync --extra dev
-```
-
-Run checks:
-
-```bash
-uv run python -m pytest tests/ -v
-uv run python -m netagent doctor
-uv run python -m netagent tools
+mvn package
 ```
 
 Run an agent task:
 
 ```bash
-uv run python -m netagent run "list all CML labs"
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar run "list all CML labs"
 ```
 
 ## Run Artifacts
@@ -96,6 +117,8 @@ experiments/runs/<run-id>/run.json
 
 The artifact includes stable top-level fields for downstream ingestion:
 
+- `experimentId` when `NETAGENT_WORKBENCH_EXPERIMENT_ID` is set
+- `agentConfigId` when `NETAGENT_WORKBENCH_AGENT_CONFIG_ID` is set
 - `workbench_import`
 - `benchmark`
 - `agent`
@@ -105,6 +128,9 @@ The artifact includes stable top-level fields for downstream ingestion:
 
 Full step traces and tool audit records are also stored in the same `run.json`
 for debugging and evaluation.
+
+Set `NETAGENT_WORKBENCH_EXPERIMENT_ID` before a run when the generated
+`run.json` should be posted directly to the workbench FYP run import API.
 
 ## Relationship With `agent-eval-workbench`
 

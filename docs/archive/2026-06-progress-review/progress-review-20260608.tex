@@ -30,7 +30,7 @@
   basicstyle=\tiny\ttfamily,
   breaklines=true,
   frame=single,
-  language=Python,
+  language=Java,
   showstringspaces=false,
 }
 
@@ -125,7 +125,7 @@
       box/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.8cm, align=center, fill=blue!10},
       arrow/.style={->, >=stealth, thick}
     ]
-    \node[box] (cli) {CLI\\\texttt{netagent run}};
+    \node[box] (cli) {CLI\\\texttt{java -jar ... run}};
     \node[box, right=of cli] (runner) {Runner\\task orchestration};
     \node[box, right=of runner] (agent) {Agent\\tool-calling loop};
     \node[box, right=of agent] (mcp) {MCP Server\\stdio JSON-RPC};
@@ -144,9 +144,9 @@
 
   \vspace{4pt}
   \begin{center}
-    \footnotesize Python 3.13 \quad$\cdot$\quad
-    OpenAI Agents SDK 0.6 \quad$\cdot$\quad
-    cml-mcp 0.28 + virl2-client 2.9.1
+    \footnotesize Java 25 \quad$\cdot$\quad
+    Spring Boot 4.1 \quad$\cdot$\quad
+    MCP Java SDK + cml-mcp stdio
   \end{center}
 \end{frame}
 
@@ -186,7 +186,7 @@
 \end{frame}
 
 \begin{frame}{Progress: Agent Demo}
-  \textbf{Example Run}: \texttt{netagent run "list all labs on CML"}
+  \textbf{Example Run}: \texttt{java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar run "list all labs on CML"}
 
   \vspace{6pt}
   \begin{block}{Agent Output (excerpt)}
