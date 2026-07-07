@@ -103,7 +103,7 @@ class AgentLoopTest {
     }
 
     private LlmResponse response(String content, List<ToolCall> toolCalls, int promptTokens, int completionTokens) {
-        return new LlmResponse(content, toolCalls, toolCalls.isEmpty() ? "stop" : "tool_calls", promptTokens, completionTokens, null);
+        return new LlmResponse(content, toolCalls, toolCalls.isEmpty() ? "stop" : "tool_calls", promptTokens, completionTokens);
     }
 
     private McpTool tool(String name) {

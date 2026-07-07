@@ -59,6 +59,22 @@ class DoctorServiceTest {
         assertThat(result.messages().getLast()).contains("cml unavailable");
     }
 
+    @Test
+    void reportsAnthropicKeyName() {
+        NetagentSettings settings = NetagentSettings.fromMap(Map.of(
+                "LLM_PROVIDER", "anthropic",
+                "ANTHROPIC_API_KEY", "key"
+        ));
+
+        DoctorService.DoctorResult result = doctorService.check(
+                settings,
+                () -> new ScriptedMcpClient(Map.of(), List.of())
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.messages()).contains("OK: ANTHROPIC_API_KEY is set");
+    }
+
     private McpTool tool(String name) {
         return new McpTool(name, "test", Map.of("type", "object", "properties", Map.of()));
     }

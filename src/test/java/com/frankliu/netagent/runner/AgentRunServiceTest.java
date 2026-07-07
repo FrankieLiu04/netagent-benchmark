@@ -41,8 +41,8 @@ class AgentRunServiceTest {
                 "list labs",
                 "system",
                 new ScriptedLlmClient(List.of(
-                        new LlmResponse("checking", List.of(new ToolCall("call-0", "get_cml_labs", Map.of())), "tool_calls", 5, 2, null),
-                        new LlmResponse("Done.", List.of(), "stop", 7, 3, null)
+                        new LlmResponse("checking", List.of(new ToolCall("call-0", "get_cml_labs", Map.of())), "tool_calls", 5, 2),
+                        new LlmResponse("Done.", List.of(), "stop", 7, 3)
                 )),
                 new ScriptedMcpClient(Map.of("get_cml_labs", "[]"), List.of(labsTool))
         );
@@ -118,7 +118,7 @@ class AgentRunServiceTest {
                 settings,
                 "answer directly",
                 "system",
-                new ScriptedLlmClient(List.of(new LlmResponse("Done.", List.of(), "stop", 1, 1, null))),
+                new ScriptedLlmClient(List.of(new LlmResponse("Done.", List.of(), "stop", 1, 1))),
                 () -> mcp
         );
 

@@ -8,67 +8,142 @@ import com.frankliu.netagent.artifact.RunArtifact;
 import com.frankliu.netagent.config.NetagentSettings;
 import com.frankliu.netagent.diagnostics.DoctorService;
 import com.frankliu.netagent.diagnostics.DoctorService.DoctorResult;
+import com.frankliu.netagent.llm.LlmClientFactory;
 import com.frankliu.netagent.llm.LlmResponse;
 import com.frankliu.netagent.llm.ScriptedLlmClient;
 import com.frankliu.netagent.llm.ToolCall;
-import com.frankliu.netagent.llm.openai.OpenAiCompatibleLlmClient;
 import com.frankliu.netagent.logging.RunLog;
 import com.frankliu.netagent.logging.RunLogService;
-import com.frankliu.netagent.mcp.McpTool;
 import com.frankliu.netagent.mcp.CmlMcpServerSpec;
+import com.frankliu.netagent.mcp.McpTool;
 import com.frankliu.netagent.mcp.ScriptedMcpClient;
 import com.frankliu.netagent.mcp.SdkCmlMcpClient;
 import com.frankliu.netagent.runner.AgentRunResult;
 import com.frankliu.netagent.runner.AgentRunService;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
-public final class NetagentApplication {
+@Command(
+        name = "netagent-benchmark",
+        mixinStandardHelpOptions = true,
+        subcommands = {
+                NetagentApplication.ArtifactSmoke.class,
+                NetagentApplication.LoopSmoke.class,
+                NetagentApplication.LlmSmoke.class,
+                NetagentApplication.Run.class,
+                NetagentApplication.Doctor.class,
+                NetagentApplication.Tools.class,
+                NetagentApplication.McpSpec.class
+        }
+)
+public final class NetagentApplication implements Runnable {
 
-    private NetagentApplication() {
+    @Spec
+    CommandSpec spec;
+
+    public static void main(String[] args) {
+        PrintWriter out = new PrintWriter(System.out, true);
+        CommandLine commandLine = new CommandLine(new NetagentApplication()).setOut(out).setErr(out);
+        int exitCode = commandLine.execute(args);
+        out.flush();
+        if (exitCode != 0) {
+            System.exit(exitCode);
+        }
     }
 
-    public static void main(String[] args) throws IOException {
-        if (args.length == 0 || "--help".equals(args[0]) || "-h".equals(args[0])) {
-            printUsage();
-            return;
+    @Override
+    public void run() {
+        spec.commandLine().usage(spec.commandLine().getOut());
+    }
+
+    @Command(name = "artifact-smoke", description = "Write a workbench-compatible run.json without calling LLM or CML.")
+    static final class ArtifactSmoke extends TaskCommand {
+
+        @Override
+        public Integer call() throws IOException {
+            writeArtifactSmoke(task());
+            return 0;
         }
-        String command = args[0];
-        String task = args.length > 1 ? String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)) : "java migration smoke";
-        if ("artifact-smoke".equals(command)) {
-            writeArtifactSmoke(task);
-            return;
+    }
+
+    @Command(name = "loop-smoke", description = "Run the Java agent loop with scripted LLM and MCP clients.")
+    static final class LoopSmoke extends TaskCommand {
+
+        @Override
+        public Integer call() throws IOException {
+            writeLoopSmoke(task());
+            return 0;
         }
-        if ("loop-smoke".equals(command)) {
-            writeLoopSmoke(task);
-            return;
+    }
+
+    @Command(name = "llm-smoke", description = "Run the Java loop with the configured real LLM and no CML tools.")
+    static final class LlmSmoke extends TaskCommand {
+
+        @Override
+        public Integer call() throws IOException {
+            writeLlmSmoke(task());
+            return 0;
         }
-        if ("llm-smoke".equals(command)) {
-            writeLlmSmoke(task);
-            return;
+    }
+
+    @Command(name = "run", description = "Run the Java agent with a real LLM and CML MCP tools.")
+    static final class Run extends TaskCommand {
+
+        @Override
+        public Integer call() throws IOException {
+            runWithCml(task());
+            return 0;
         }
-        if ("run".equals(command)) {
-            runWithCml(task);
-            return;
+    }
+
+    @Command(name = "doctor", description = "Check Java runtime configuration and CML MCP tool discovery.")
+    static final class Doctor implements Callable<Integer> {
+
+        @Override
+        public Integer call() {
+            return runDoctor();
         }
-        if ("doctor".equals(command)) {
-            runDoctor();
-            return;
-        }
-        if ("mcp-spec".equals(command)) {
-            printMcpSpec();
-            return;
-        }
-        if ("tools".equals(command)) {
+    }
+
+    @Command(name = "tools", description = "Start cml-mcp through the MCP Java SDK and print available tools.")
+    static final class Tools implements Callable<Integer> {
+
+        @Override
+        public Integer call() {
             printCmlTools();
-            return;
+            return 0;
         }
-        throw new IllegalArgumentException("Unknown command: " + command);
+    }
+
+    @Command(name = "mcp-spec", description = "Print the prepared cml-mcp stdio command without starting it.")
+    static final class McpSpec implements Callable<Integer> {
+
+        @Override
+        public Integer call() {
+            printMcpSpec();
+            return 0;
+        }
+    }
+
+    abstract static class TaskCommand implements Callable<Integer> {
+        @Parameters(index = "0..*", arity = "0..*", paramLabel = "TASK")
+        private List<String> taskParts = List.of();
+
+        String task() {
+            return taskParts.isEmpty() ? "java migration smoke" : String.join(" ", taskParts);
+        }
     }
 
     private static void writeArtifactSmoke(String task) throws IOException {
@@ -108,16 +183,14 @@ public final class NetagentApplication {
                                 List.of(new ToolCall("call-0", "get_cml_labs", Map.of())),
                                 "tool_calls",
                                 50,
-                                10,
-                                null
+                                10
                         ),
                         new LlmResponse(
                                 "Done. Found OSPF-Demo and BGP-Lab.",
                                 List.of(),
                                 "stop",
                                 100,
-                                30,
-                                null
+                                30
                         )
                 )),
                 new ScriptedMcpClient(Map.of("get_cml_labs", "[\"OSPF-Demo\", \"BGP-Lab\"]"), List.of(labsTool))
@@ -133,7 +206,7 @@ public final class NetagentApplication {
                 settings,
                 task,
                 SystemPrompts.fullAccess(),
-                OpenAiCompatibleLlmClient.fromSettings(settings, objectMapper),
+                LlmClientFactory.fromSettings(settings, objectMapper),
                 new ScriptedMcpClient(Map.of(), List.of())
         );
         System.out.println(result.runLogPath());
@@ -148,7 +221,7 @@ public final class NetagentApplication {
                 settings,
                 task,
                 SystemPrompts.fullAccess(),
-                OpenAiCompatibleLlmClient.fromSettings(settings, objectMapper),
+                LlmClientFactory.fromSettings(settings, objectMapper),
                 () -> SdkCmlMcpClient.start(mcpSpec)
         );
         System.out.println(result.finalAnswer());
@@ -163,14 +236,12 @@ public final class NetagentApplication {
         System.out.println("envKeys=" + spec.environment().keySet());
     }
 
-    private static void runDoctor() {
+    private static int runDoctor() {
         NetagentSettings settings = NetagentSettings.fromEnvironment();
         CmlMcpServerSpec spec = CmlMcpServerSpec.fromSettings(settings);
         DoctorResult result = new DoctorService().check(settings, () -> SdkCmlMcpClient.start(spec));
         System.out.println(String.join("\n", result.messages()));
-        if (result.exitCode() != 0) {
-            System.exit(result.exitCode());
-        }
+        return result.exitCode();
     }
 
     private static void printCmlTools() {
@@ -183,25 +254,4 @@ public final class NetagentApplication {
         }
     }
 
-    private static void printUsage() {
-        System.out.println("""
-                Usage:
-                  java -jar netagent-benchmark.jar artifact-smoke "list all CML labs"
-                  java -jar netagent-benchmark.jar loop-smoke "list all CML labs"
-                  java -jar netagent-benchmark.jar llm-smoke "summarize OSPF in one sentence"
-                  java -jar netagent-benchmark.jar run "list all CML labs"
-                  java -jar netagent-benchmark.jar doctor
-                  java -jar netagent-benchmark.jar tools
-                  java -jar netagent-benchmark.jar mcp-spec
-
-                Commands:
-                  artifact-smoke   Write a workbench-compatible run.json without calling LLM or CML.
-                  loop-smoke       Run the Java agent loop with scripted LLM and MCP clients.
-                  llm-smoke        Run the Java loop with a real OpenAI-compatible LLM and no CML tools.
-                  run              Run the Java agent with a real LLM and CML MCP tools.
-                  doctor           Check Java runtime configuration and CML MCP tool discovery.
-                  tools            Start cml-mcp through the MCP Java SDK and print available tools.
-                  mcp-spec         Print the prepared cml-mcp stdio command without starting it.
-                """);
-    }
 }

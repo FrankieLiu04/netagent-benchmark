@@ -68,10 +68,9 @@ class ArtifactFactoryTest {
                                 List.of(new ToolCall("call-0", "get_cml_labs", Map.of())),
                                 "tool_calls",
                                 50,
-                                10,
-                                null
+                                10
                         ),
-                        new LlmResponse("Done.", List.of(), "stop", 100, 30, null)
+                        new LlmResponse("Done.", List.of(), "stop", 100, 30)
                 )),
                 new ScriptedMcpClient(Map.of("get_cml_labs", "[]")),
                 List.of(new McpTool("get_cml_labs", "mock", Map.of())),

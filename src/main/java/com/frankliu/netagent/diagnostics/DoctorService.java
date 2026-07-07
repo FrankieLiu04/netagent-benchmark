@@ -56,6 +56,9 @@ public class DoctorService {
         if ("openai".equalsIgnoreCase(settings.llmProvider())) {
             return "OPENAI_API_KEY";
         }
+        if ("anthropic".equalsIgnoreCase(settings.llmProvider())) {
+            return "ANTHROPIC_API_KEY";
+        }
         return "DEEPSEEK_API_KEY";
     }
 

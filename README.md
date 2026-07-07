@@ -24,20 +24,20 @@ Spring Boot workbench. It provides:
   and run artifact location.
 - Workbench-compatible `run.json` artifact records.
 - A typed Java agent loop with LLM and MCP adapter interfaces.
-- A lightweight OpenAI-compatible Java LLM adapter built on JDK `HttpClient`.
+- OpenAI chat-completions and Claude LLM adapters built on official Java SDKs.
 - A typed CML MCP stdio adapter built on the official MCP Java SDK.
 - Secret redaction and run-log writing.
 - A minimal `artifact-smoke` CLI command for writing a dry-run artifact without
   calling an LLM or CML.
 - A `loop-smoke` CLI command that executes the Java loop with scripted LLM and
   MCP clients, then writes a trace-bearing `run.json`.
-- An `llm-smoke` CLI command that uses a real OpenAI-compatible LLM endpoint
+- An `llm-smoke` CLI command that uses the configured real LLM provider
   with no CML tools.
 - A `tools` CLI command that starts `cml-mcp` through the official MCP Java SDK
   and lists tools exposed by Cisco Modeling Labs.
 - A `doctor` CLI command for checking runtime configuration and CML MCP tool
   discovery.
-- A `run` CLI command that executes the Java agent with a real OpenAI-compatible
+- A `run` CLI command that executes the Java agent with the configured real
   LLM and real CML MCP tools, then writes the workbench-compatible run artifact.
 
 The repository no longer contains a Python benchmark implementation. The Java
@@ -50,7 +50,7 @@ for Python.
 ```text
 CLI task
   -> runner
-  -> OpenAI-compatible LLM client
+  -> configured LLM client
   -> ReAct-style agent loop
   -> CML MCP stdio session
   -> Cisco Modeling Labs

@@ -32,7 +32,7 @@ public record NetagentSettings(
         String provider = value(env, "LLM_PROVIDER", "deepseek");
         return new NetagentSettings(
                 provider,
-                value(env, "LLM_MODEL", "deepseek-v4-flash"),
+                value(env, "LLM_MODEL", defaultModel(provider)),
                 providerBaseUrl(env, provider),
                 providerApiKey(env, provider),
                 env.getOrDefault("CML_URL", ""),
@@ -63,6 +63,9 @@ public record NetagentSettings(
         if ("openai".equalsIgnoreCase(provider)) {
             return env.getOrDefault("OPENAI_BASE_URL", "https://api.openai.com/v1");
         }
+        if ("anthropic".equalsIgnoreCase(provider)) {
+            return env.getOrDefault("ANTHROPIC_BASE_URL", "https://api.anthropic.com");
+        }
         return env.getOrDefault("DEEPSEEK_BASE_URL", "https://api.deepseek.com");
     }
 
@@ -70,7 +73,17 @@ public record NetagentSettings(
         if ("openai".equalsIgnoreCase(provider)) {
             return env.getOrDefault("OPENAI_API_KEY", "");
         }
+        if ("anthropic".equalsIgnoreCase(provider)) {
+            return env.getOrDefault("ANTHROPIC_API_KEY", "");
+        }
         return env.getOrDefault("DEEPSEEK_API_KEY", "");
+    }
+
+    private static String defaultModel(String provider) {
+        if ("anthropic".equalsIgnoreCase(provider)) {
+            return "claude-opus-4-6";
+        }
+        return "deepseek-v4-flash";
     }
 
     private static String value(Map<String, String> env, String key, String fallback) {

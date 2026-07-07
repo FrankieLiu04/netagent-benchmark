@@ -52,6 +52,18 @@ class NetagentSettingsTest {
     }
 
     @Test
+    void anthropicProviderUsesAnthropicKeyBaseUrlAndDefaultModel() {
+        NetagentSettings settings = NetagentSettings.fromMap(Map.of(
+                "LLM_PROVIDER", "anthropic",
+                "ANTHROPIC_API_KEY", "key"
+        ));
+
+        assertThat(settings.modelName()).isEqualTo("claude-opus-4-6");
+        assertThat(settings.providerApiKey()).isEqualTo("key");
+        assertThat(settings.providerBaseUrl()).isEqualTo("https://api.anthropic.com");
+    }
+
+    @Test
     void cmlEnvironmentContainsOnlyRuntimeMcpValues() {
         NetagentSettings settings = NetagentSettings.fromMap(Map.of(
                 "CML_URL", "https://cml.example",

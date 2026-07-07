@@ -17,7 +17,7 @@ public class ScriptedLlmClient implements LlmClient {
     @Override
     public LlmResponse chat(String systemPrompt, List<ChatMessage> messages, List<McpTool> tools) {
         if (responses.isEmpty()) {
-            return new LlmResponse("No scripted response remains.", List.of(), "stop", 0, 0, null);
+            return new LlmResponse("No scripted response remains.", List.of(), "stop", 0, 0);
         }
         return responses.remove();
     }
