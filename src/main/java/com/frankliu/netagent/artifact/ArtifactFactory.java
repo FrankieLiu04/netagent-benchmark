@@ -1,7 +1,7 @@
 package com.frankliu.netagent.artifact;
 
-import com.frankliu.netagent.trace.AgentLoopResult;
-import com.frankliu.netagent.trace.ToolAuditEntry;
+import com.frankliu.netagent.artifact.trace.AgentLoopResult;
+import com.frankliu.netagent.artifact.trace.ToolAuditEntry;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -10,7 +10,11 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
+/** Creates the single run.json schema used by the benchmark. */
 public final class ArtifactFactory {
+
+    private static final String SCHEMA_VERSION = "1.0";
+    private static final String DEFAULT_MODE = "agent-run";
 
     private ArtifactFactory() {
     }
@@ -26,22 +30,11 @@ public final class ArtifactFactory {
             BigDecimal durationSeconds,
             Integer promptTokens,
             Integer completionTokens,
-            ToolAuditSummary toolAuditSummary
+            ToolAuditCounts toolAuditCounts
     ) {
         return build(
-                runId,
-                timestamp,
-                task,
-                provider,
-                model,
-                runLogPath,
-                "completed",
-                finalAnswer,
-                null,
-                durationSeconds,
-                promptTokens,
-                completionTokens,
-                toolAuditSummary
+                runId, timestamp, task, provider, model, runLogPath, "completed", finalAnswer, null,
+                durationSeconds, promptTokens, completionTokens, toolAuditCounts, emptyTrace(toolAuditCounts)
         );
     }
 
@@ -54,20 +47,14 @@ public final class ArtifactFactory {
             Path runLogPath,
             AgentLoopResult result
     ) {
-        RunArtifact artifact = completed(
-                runId,
-                timestamp,
-                task,
-                provider,
-                model,
-                runLogPath,
-                result.finalAnswer(),
-                BigDecimal.valueOf(result.durationSeconds()).setScale(3, RoundingMode.HALF_UP),
-                result.totalPromptTokens(),
-                result.totalCompletionTokens(),
-                result.toolAuditSummary()
+        ToolAuditCounts counts = result.toolAuditCounts();
+        RunArtifact.Trace trace = new RunArtifact.Trace(
+                result.traces(), result.toolAudit(), toolAuditSummary(result.toolAudit())
         );
-        return withLoopDetails(artifact, runId, timestamp, task, provider, model, result);
+        return build(
+                runId, timestamp, task, provider, model, runLogPath, "completed", result.finalAnswer(), null,
+                rounded(result.durationSeconds()), result.totalPromptTokens(), result.totalCompletionTokens(), counts, trace
+        );
     }
 
     public static RunArtifact failed(
@@ -79,22 +66,11 @@ public final class ArtifactFactory {
             Path runLogPath,
             String errorMessage,
             BigDecimal durationSeconds,
-            ToolAuditSummary toolAuditSummary
+            ToolAuditCounts toolAuditCounts
     ) {
         return build(
-                runId,
-                timestamp,
-                task,
-                provider,
-                model,
-                runLogPath,
-                "failed",
-                null,
-                errorMessage,
-                durationSeconds,
-                null,
-                null,
-                toolAuditSummary
+                runId, timestamp, task, provider, model, runLogPath, "failed", null, errorMessage,
+                durationSeconds, null, null, toolAuditCounts, emptyTrace(toolAuditCounts)
         );
     }
 
@@ -111,107 +87,40 @@ public final class ArtifactFactory {
             BigDecimal durationSeconds,
             Integer promptTokens,
             Integer completionTokens,
-            ToolAuditSummary toolAuditSummary
+            ToolAuditCounts toolAuditCounts,
+            RunArtifact.Trace trace
     ) {
-        ToolAuditSummary audit = toolAuditSummary == null ? ToolAuditSummary.empty() : toolAuditSummary;
+        ToolAuditCounts counts = toolAuditCounts == null ? ToolAuditCounts.empty() : toolAuditCounts;
         return new RunArtifact(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                new RunArtifact.Benchmark("netagent", runId, "agent-run"),
-                new RunArtifact.Agent(provider, model, "default"),
+                SCHEMA_VERSION,
+                runId,
+                timestamp,
+                new RunArtifact.Task(task, runId, DEFAULT_MODE),
+                new RunArtifact.Agent(provider, model),
                 new RunArtifact.Result(status, null, finalAnswer, errorMessage),
                 new RunArtifact.Metrics(
                         durationSeconds,
                         promptTokens,
                         completionTokens,
                         totalTokens(promptTokens, completionTokens),
-                        audit.totalCalls(),
-                        audit.mutatingCalls(),
-                        audit.failedCalls()
+                        counts.totalCalls(),
+                        counts.mutatingCalls(),
+                        counts.failedCalls()
                 ),
-                new RunArtifact.Artifacts(runLogPath.toString(), null, null),
-                new RunArtifact.WorkbenchImport("1.0", runId, timestamp, task)
+                trace,
+                new RunArtifact.Artifacts(runLogPath.toString())
         );
     }
 
-    public static RunArtifact withLoopDetails(
-            RunArtifact artifact,
-            String runId,
-            Instant timestamp,
-            String task,
-            String provider,
-            String model,
-            AgentLoopResult result
-    ) {
-        return new RunArtifact(
-                artifact.experimentId(),
-                artifact.agentConfigId(),
-                runId,
-                timestamp,
-                task,
-                provider,
-                model,
-                "all",
-                result.finalAnswer(),
-                result.steps(),
-                result.totalPromptTokens(),
-                result.totalCompletionTokens(),
-                BigDecimal.valueOf(result.durationSeconds()).setScale(3, RoundingMode.HALF_UP),
-                result.traces(),
-                toolAuditSummary(result.toolAudit()),
-                result.toolAudit(),
-                artifact.benchmark(),
-                artifact.agent(),
-                artifact.result(),
-                artifact.metrics(),
-                artifact.artifacts(),
-                artifact.workbenchImport()
-        );
+    private static RunArtifact.Trace emptyTrace(ToolAuditCounts counts) {
+        return new RunArtifact.Trace(List.of(), List.of(), new RunArtifact.ToolAuditSummary(
+                counts.totalCalls(), counts.mutatingCalls(), counts.totalCalls() - counts.mutatingCalls(),
+                counts.failedCalls(), counts.totalCalls() - counts.failedCalls(), List.of()
+        ));
     }
 
-    public static RunArtifact withWorkbenchIds(
-            RunArtifact artifact,
-            Long experimentId,
-            Long agentConfigId
-    ) {
-        return new RunArtifact(
-                experimentId,
-                agentConfigId,
-                artifact.runId(),
-                artifact.timestamp(),
-                artifact.userTask(),
-                artifact.llmProvider(),
-                artifact.modelName(),
-                artifact.toolExposure(),
-                artifact.finalAnswer(),
-                artifact.steps(),
-                artifact.totalPromptTokens(),
-                artifact.totalCompletionTokens(),
-                artifact.durationSeconds(),
-                artifact.stepsTrace(),
-                artifact.toolAuditSummary(),
-                artifact.toolAudit(),
-                artifact.benchmark(),
-                artifact.agent(),
-                artifact.result(),
-                artifact.metrics(),
-                artifact.artifacts(),
-                artifact.workbenchImport()
-        );
+    private static BigDecimal rounded(double durationSeconds) {
+        return BigDecimal.valueOf(durationSeconds).setScale(3, RoundingMode.HALF_UP);
     }
 
     private static Integer totalTokens(Integer promptTokens, Integer completionTokens) {
@@ -221,9 +130,9 @@ public final class ArtifactFactory {
         return (promptTokens == null ? 0 : promptTokens) + (completionTokens == null ? 0 : completionTokens);
     }
 
-    public record ToolAuditSummary(Integer totalCalls, Integer mutatingCalls, Integer failedCalls) {
-        public static ToolAuditSummary empty() {
-            return new ToolAuditSummary(0, 0, 0);
+    public record ToolAuditCounts(Integer totalCalls, Integer mutatingCalls, Integer failedCalls) {
+        public static ToolAuditCounts empty() {
+            return new ToolAuditCounts(0, 0, 0);
         }
     }
 
@@ -237,12 +146,8 @@ public final class ArtifactFactory {
                 .sorted(Comparator.naturalOrder())
                 .toList();
         return new RunArtifact.ToolAuditSummary(
-                totalCalls,
-                mutatingCalls,
-                totalCalls - mutatingCalls,
-                failedCalls,
-                totalCalls - failedCalls,
-                toolNames
+                totalCalls, mutatingCalls, totalCalls - mutatingCalls, failedCalls,
+                totalCalls - failedCalls, toolNames
         );
     }
 }

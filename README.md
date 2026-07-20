@@ -1,146 +1,140 @@
 # netagent-benchmark
 
-`netagent-benchmark` is a research prototype for LLM-driven network
-engineering agents and benchmarks. It connects an LLM agent to Cisco Modeling
-Labs (CML) through Cisco's MCP server, then records sanitized run artifacts for
-network configuration and troubleshooting experiments.
+`netagent-benchmark` is a Java CLI for repeatable LLM network-engineering
+experiments. It connects an agent loop to Cisco Modeling Labs (CML) through
+Cisco's MCP server, or to a local replay environment during development, and
+writes one sanitized `run.json` per run.
 
-## Goals
+The repository is an experiment harness, not a generic agent platform and not
+a web service. Its long-term research path is:
 
-1. Build a benchmark harness for network configuration tasks.
-2. Study where LLMs fail in L2/L3 network engineering workflows.
-3. Explore improvement strategies such as RAG, multi-agent coordination, and
-   verification loops.
-4. Generate stable run artifacts that can be imported by a separate experiment
-   tracking backend.
+1. develop repeatable cases with replayed network observations;
+2. validate observation and diagnosis against real CML when campus access is
+   available;
+3. run isolated, resettable CML configuration and repair experiments with an
+   explicit per-task tool policy.
 
-## Current Status
+## What works today
 
-The benchmark harness is now implemented in Java to align with the adjacent
-Spring Boot workbench. It provides:
+- Java 25 Maven CLI with a real OpenAI-compatible LLM adapter (DeepSeek by
+  default).
+- A CML MCP stdio adapter built on the official MCP Java SDK.
+- A replay network environment and scripted LLM adapter for deterministic
+  local tests and smoke runs.
+- A typed agent loop with tool traces, token counts, duration, and tool audit
+  records.
+- Sanitized, benchmark-owned `run.json` artifacts under `experiments/runs/`.
+- CML diagnostics and tool-discovery commands for use once the internal
+  network is reachable.
 
-- Java 25 / Spring Boot 4.1 Maven build metadata.
-- Environment-backed Java runtime settings for model, CML, turn budget, timeout,
-  and run artifact location.
-- Workbench-compatible `run.json` artifact records.
-- A typed Java agent loop with LLM and MCP adapter interfaces.
-- OpenAI chat-completions and Claude LLM adapters built on official Java SDKs.
-- A typed CML MCP stdio adapter built on the official MCP Java SDK.
-- Secret redaction and run-log writing.
-- A minimal `artifact-smoke` CLI command for writing a dry-run artifact without
-  calling an LLM or CML.
-- A `loop-smoke` CLI command that executes the Java loop with scripted LLM and
-  MCP clients, then writes a trace-bearing `run.json`.
-- An `llm-smoke` CLI command that uses the configured real LLM provider
-  with no CML tools.
-- A `tools` CLI command that starts `cml-mcp` through the official MCP Java SDK
-  and lists tools exposed by Cisco Modeling Labs.
-- A `doctor` CLI command for checking runtime configuration and CML MCP tool
-  discovery.
-- A `run` CLI command that executes the Java agent with the configured real
-  LLM and real CML MCP tools, then writes the workbench-compatible run artifact.
-
-The repository no longer contains a Python benchmark implementation. The Java
-runtime can still start an external CML MCP server over stdio; by default that
-command is `python -m cml_mcp` because Cisco's `cml-mcp` package is distributed
-for Python.
+Real CML execution is intentionally not claimed as validated until `doctor`,
+`tools`, and a real `run` have completed in the target environment.
 
 ## Architecture
 
 ```text
-CLI task
-  -> runner
-  -> configured LLM client
-  -> ReAct-style agent loop
-  -> CML MCP stdio session
-  -> Cisco Modeling Labs
-  -> sanitized run artifact
+CLI
+  -> experiment/ExperimentRunner
+  -> agent/AgentLoop
+  -> ports/llm + ports/network
+  -> adapters/llm/openai and adapters/network/{replay,cml}
+  -> artifact/run.json
 ```
 
-## Repository Layout
+The core depends only on the two small ports:
+
+- `LlmClient`: asks a model to respond to messages and exposed tools.
+- `NetworkEnvironment`: lists and calls network tools.
+
+`ReplayNetworkEnvironment` and `CmlMcpEnvironment` implement the same network
+port. This lets local regression tests exercise the same agent loop that later
+talks to real CML.
+
+## Repository layout
 
 ```text
-netagent-benchmark/
-├── src/main/java/    # Java agent harness, MCP client, CLI, and run logging
-├── src/test/java/    # Java unit and integration-style tests with local mocks
-├── docs/             # Public project notes and archived presentation material
-├── research/         # Literature review and research context
-├── experiments/      # Local run artifacts; generated runs are git-ignored
-├── AGENTS.md         # Instructions for coding agents working in this repo
-└── README.md
+src/main/java/com/frankliu/netagent/
+├── cli/          # Picocli entry point and CML diagnostics
+├── experiment/   # Runtime settings and ExperimentRunner orchestration
+├── agent/        # Agent loop, prompts, and tool-call audit policy
+├── ports/        # Stable LLM and network interfaces
+├── adapters/     # OpenAI-compatible, replay, and CML MCP implementations
+└── artifact/     # run.json schema, redaction, trace, and file writing
+
+src/test/java/    # Mirrors production package boundaries
+experiments/runs/ # Generated, sanitized run artifacts; git-ignored
+research/         # Literature and benchmark context
+docs/             # Public project notes
 ```
 
-## Quick Start
+## Quick start
+
+`mise.toml` pins Java and Maven. Run Maven through mise when Maven is not on
+your shell `PATH`:
 
 ```bash
-mvn test
-mvn package
+mise exec -- mvn test
+mise exec -- mvn package
+```
+
+The packaged CLI is:
+
+```bash
+java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar --help
+```
+
+### Local, deterministic checks
+
+```bash
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar artifact-smoke "list all CML labs"
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar loop-smoke "list all CML labs"
+```
+
+`loop-smoke` uses replay adapters only. It never contacts an LLM or CML.
+
+### Real LLM, then real CML
+
+Copy `.env.example` and let your shell, IDE, or container inject its values.
+The application deliberately does not parse `.env` itself.
+
+```bash
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar llm-smoke "summarize OSPF in one sentence"
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar run "list all CML labs"
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar doctor
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar tools
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar mcp-spec
-```
-
-Use `.env.example` as a local template for shell, IDE, Docker, or deployment
-environment variables:
-
-```bash
-cp .env.example .env
-```
-
-The Java runtime reads process environment variables. It does not parse `.env`
-files itself. For local shell runs, export the variables before launching the
-jar, or let your IDE/container tooling load them.
-
-Install Java dependencies through Maven:
-
-```bash
-mvn package
-```
-
-Run an agent task:
-
-```bash
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar run "list all CML labs"
 ```
 
-## Run Artifacts
+Use `doctor` and `tools` before `run` after any CML, campus-network, VPN, or
+MCP configuration change.
 
-Each run writes a sanitized artifact to:
+## Run artifacts
+
+Every run writes:
 
 ```text
-experiments/runs/<run-id>/run.json
+experiments/runs/<run-id>-<task-slug>/run.json
 ```
 
-The artifact includes stable top-level fields for downstream ingestion:
+`run.json` is the source of truth for a benchmark run. It contains its schema
+version, task, agent identity, result, metrics, full tool trace, tool audit,
+and artifact path. Secret-like fields are removed before it is written.
 
-- `experimentId` when `NETAGENT_WORKBENCH_EXPERIMENT_ID` is set
-- `agentConfigId` when `NETAGENT_WORKBENCH_AGENT_CONFIG_ID` is set
-- `workbench_import`
-- `benchmark`
-- `agent`
-- `result`
-- `metrics`
-- `artifacts`
+The adjacent `agent-eval-workbench` is not a runtime dependency. If later
+analysis needs a database, add an explicit import transformer from this schema
+rather than changing the runner to fit a workbench API.
 
-Full step traces and tool audit records are also stored in the same `run.json`
-for debugging and evaluation.
+## Scope boundaries
 
-Set `NETAGENT_WORKBENCH_EXPERIMENT_ID` before a run when the generated
-`run.json` should be posted directly to the workbench FYP run import API.
+- Do not add a web server, database, queue, dashboard, or workbench client to
+  this repository without a concrete experiment that requires it.
+- Do not add a second LLM adapter unless it is an explicit model-comparison
+  variable in an experiment.
+- Do not treat replay results as proof of CML behaviour.
+- Before enabling CML write operations, introduce task cases with explicit
+  allowed tools, isolated/resettable labs, and post-change verification.
 
-## Relationship With `agent-eval-workbench`
+## Research context
 
-`netagent-benchmark` owns agent execution, CML/MCP integration, and run artifact
-generation. [`agent-eval-workbench`](https://github.com/FrankieLiu04/agent-eval-workbench)
-owns the Java Spring Boot backend for importing artifacts, tracking
-experiments, and comparing evaluation results.
-
-## Research Notes
-
-- [Literature review](research/literature-review.md)
 - [Project topic summary](docs/topic.md)
+- [Literature review](research/literature-review.md)
 - [NetConfBench IETF Draft](https://datatracker.ietf.org/doc/draft-cui-nmrg-llm-benchmark/01/)

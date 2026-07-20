@@ -1,112 +1,89 @@
 # AGENTS.md
 
-## Project Shape
+## Purpose and scope
 
-`netagent-benchmark` is a Java benchmark harness for LLM-driven Cisco Modeling
-Labs experiments. It is aligned with the adjacent Spring Boot workbench and no
-longer contains a repository-local Python implementation.
+`netagent-benchmark` is a Java 25 CLI for controlled LLM network-engineering
+experiments. It must remain a modular monolith: one runnable benchmark harness
+with CML and replay adapters, not a web platform or a second workbench.
 
-- Java runtime code lives in `src/main/java`.
-- Java tests live in `src/test/java`.
-- Research context lives in `research/`.
-- Public project notes live in `docs/`.
-- Generated run logs live under `experiments/runs/` and are git-ignored.
+The durable output of a run is the sanitized
+`experiments/runs/<run-id>-<task-slug>/run.json`. That schema belongs to this
+repository. External systems may transform and import it, but must not control
+the runner's runtime model.
 
-The Java runtime may start an external CML MCP server over stdio. The default
-external command is still `python -m cml_mcp` because Cisco's `cml-mcp` package
-is distributed for Python, but that process is an external dependency rather
-than repository implementation code.
+## Package map
 
-## Development Commands
+```text
+cli/          Picocli commands and CML diagnostics only
+experiment/   Run settings and ExperimentRunner orchestration
+agent/        Agent loop, prompt text, and tool-call audit policy
+ports/        Stable LlmClient and NetworkEnvironment interfaces
+adapters/     Implementations for OpenAI-compatible LLMs, replay, and CML MCP
+artifact/     run.json schema, traces, redaction, and file storage
+```
+
+Dependency direction is intentional:
+
+```text
+cli -> experiment -> agent -> ports
+adapters -> ports
+experiment -> artifact
+```
+
+Do not import an adapter into `agent/`. `agent/` must be testable with replay
+implementations. Do not create an `evaluation/` package until the first real
+task evaluator is implemented; empty framework packages are not architecture.
+
+## CML and replay rules
+
+- `ReplayNetworkEnvironment` is for deterministic local tests. It is a
+  development and regression adapter, not evidence of real CML behaviour.
+- `CmlMcpEnvironment` starts Cisco's Python-distributed `cml-mcp` process over
+  stdio through the official MCP Java SDK.
+- Run `doctor`, then `tools`, before a real CML run after any network or MCP
+  change.
+- The current tool policy records whether a call appears mutating. It does not
+  enforce permission. Before adding CML write experiments, add explicit task
+  cases, an enforced allowlist, isolated/resettable labs, and post-change
+  verification in the same change.
+
+## Runtime configuration
+
+The runtime reads process environment variables only; it does not parse `.env`.
+Use `.env.example` as a safe template for a shell, IDE, or container runtime.
+
+Required for a real LLM run:
+
+- `LLM_PROVIDER=deepseek` (default) with `DEEPSEEK_API_KEY`, or
+  `LLM_PROVIDER=openai` with `OPENAI_API_KEY`.
+- `LLM_MODEL` and the matching `*_BASE_URL` are optional overrides.
+
+Required for real CML commands: `CML_URL`, `CML_USERNAME`, and
+`CML_PASSWORD`. Never commit real hosts, credentials, API keys, production
+logs, or unsanitized network artifacts.
+
+## Development commands
+
+`mise.toml` pins Java and Maven. Prefer:
 
 ```bash
-mvn test
-mvn package
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar artifact-smoke "list all CML labs"
+mise exec -- mvn test
+mise exec -- mvn package
 java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar loop-smoke "list all CML labs"
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar llm-smoke "summarize OSPF in one sentence"
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar run "list all CML labs"
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar doctor
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar tools
-java -jar target/netagent-benchmark-0.1.0-SNAPSHOT.jar mcp-spec
 ```
 
-## Runtime Configuration
+Use `llm-smoke`, `doctor`, `tools`, and `run` only when the relevant real
+credentials and CML network path are available.
 
-Configuration is read from process environment variables, following common Java
-deployment practice. Use `.env.example` only as a local template for shells,
-IDEs, Docker, or deployment tooling that injects environment variables. The
-application should not implement its own `.env` parser.
+## Change discipline
 
-Never commit real CML hosts, usernames, passwords, API keys, production logs,
-or unsanitized network artifacts.
-
-- Java runtime settings are represented by `NetagentSettings`.
-- Add new runtime knobs in `NetagentSettings` and mirror safe placeholders in
-  `.env.example`.
-- Treat copied legacy `.env` files as untrusted input: keep only variables that
-  the current Java runtime reads, then load them through your shell, IDE, or
-  deployment tooling.
-- Runtime limits such as max turns, timeouts, and token caps are operational
-  budgets. Raise them only when a concrete run needs the extra budget and the
-  cost or failure mode is understood.
-
-## Code Guidelines
-
-- Use Java 25 and Spring Boot 4.1.x.
-- Keep Java dependency changes in `pom.xml`.
-- Keep dependency caches outside the repository in normal user/global caches
-  such as Maven or IDE caches.
-- Prefer current stable dependency releases. Avoid speculative major upgrades
-  unless tests pass and the migration surface is small enough to review clearly.
-- Write comments in English, and add them only for domain assumptions, artifact
-  contracts, or non-obvious control flow.
-
-## Long-Term Build Style
-
-- Optimize for fast iteration and human readability: write the simplest code
-  that directly serves the requested behavior.
-- Avoid framework scaffolding, defensive layers, or generic abstractions before
-  repeated need appears.
-- Keep feature changes small and focused.
-- Keep functions short; split only when the extracted helper has a clear name
-  and is reused or independently testable.
-- Add tests for explicit behavior. Prefer a few focused tests over broad
-  matrices unless a previous bug or paper requirement makes the matrix useful.
-- Avoid redundant fallback paths, retries, broad validation layers, or
-  compatibility shims unless a named failure has already been observed or is
-  required by an external contract.
-- Keep test fixtures small. Inline tiny fixtures, and move fixtures to files
-  only when they are reused or represent a real artifact shape.
-
-## Architecture Notes
-
-- Workbench-compatible artifact records live under
-  `src/main/java/com/frankliu/netagent/artifact`.
-- The Java agent core lives behind typed `LlmClient` and `CmlMcpClient`
-  interfaces.
-- Keep provider-specific OpenAI-compatible, MCP SDK, or future Spring AI code in
-  adapters instead of baking those details into the loop.
-- `CmlMcpServerSpec` is the single place for CML MCP stdio command and
-  environment construction.
-- Each run writes a sanitized `run.json` through `RunLogService`.
-- `RunArtifact` defines stable fields imported by `agent-eval-workbench`; avoid
-  breaking that schema casually.
-- Workbench import IDs come from `NETAGENT_WORKBENCH_EXPERIMENT_ID` and
-  `NETAGENT_WORKBENCH_AGENT_CONFIG_ID`; do not hard-code local database IDs.
-
-## Documentation Rules
-
-- Keep public-facing Markdown in English.
-- Keep documentation compact; prefer updating `README.md`, `AGENTS.md`, or
-  existing files before adding new docs.
-- Archive stale presentation material instead of keeping it in the main docs
-  path as current documentation.
-
-## Verification
-
-Run Java tests before handing off code changes:
-
-```bash
-mvn test
-```
+- Keep public Markdown in English and update `README.md`, this file, and
+  `TODO.md` whenever scope, commands, or architecture changes.
+- Keep comments in English; write them only for non-obvious contracts or
+  domain assumptions.
+- Add focused tests alongside an explicit behaviour. Keep CML integration
+  tests separate from default replay/unit tests.
+- Add a second provider, a workbench client, RAG, multi-agent coordination,
+  or a dashboard only after a named experiment requires it.
+- Before handoff, run `mise exec -- mvn test`. Run `mise exec -- mvn package`
+  whenever the CLI entry point or dependency set changes.

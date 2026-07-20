@@ -7,12 +7,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SystemPromptsTest {
 
     @Test
-    void fullAccessPromptDescribesCmlToolUseContract() {
-        String prompt = SystemPrompts.fullAccess();
+    void cmlAssistantPromptDescribesToolUseContract() {
+        String prompt = SystemPrompts.cmlAssistant();
 
         assertThat(prompt).contains("CML network lab assistant");
         assertThat(prompt).contains("Do not invent lab names");
-        assertThat(prompt).contains("call the relevant MCP tool");
+        assertThat(prompt).contains("only use the tools made available");
         assertThat(prompt).contains("When a CML tool fails");
     }
 }

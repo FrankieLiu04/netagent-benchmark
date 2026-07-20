@@ -1,16 +1,14 @@
 package com.frankliu.netagent.agent;
 
-import com.frankliu.netagent.llm.ChatMessage;
-import com.frankliu.netagent.llm.LlmClient;
-import com.frankliu.netagent.llm.LlmResponse;
-import com.frankliu.netagent.llm.ToolCall;
-import com.frankliu.netagent.mcp.CmlMcpClient;
-import com.frankliu.netagent.mcp.McpTool;
-import com.frankliu.netagent.mcp.ToolPolicy;
-import com.frankliu.netagent.trace.AgentLoopResult;
-import com.frankliu.netagent.trace.LoopState;
-import com.frankliu.netagent.trace.StepTrace;
-import com.frankliu.netagent.trace.ToolAuditEntry;
+import com.frankliu.netagent.artifact.trace.AgentLoopResult;
+import com.frankliu.netagent.artifact.trace.StepTrace;
+import com.frankliu.netagent.artifact.trace.ToolAuditEntry;
+import com.frankliu.netagent.ports.llm.ChatMessage;
+import com.frankliu.netagent.ports.llm.LlmClient;
+import com.frankliu.netagent.ports.llm.LlmResponse;
+import com.frankliu.netagent.ports.llm.ToolCall;
+import com.frankliu.netagent.ports.network.NetworkEnvironment;
+import com.frankliu.netagent.ports.network.NetworkTool;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -25,8 +23,8 @@ public class AgentLoop {
             String task,
             String systemPrompt,
             LlmClient llm,
-            CmlMcpClient mcp,
-            List<McpTool> tools,
+            NetworkEnvironment environment,
+            List<NetworkTool> tools,
             int maxSteps
     ) {
         LoopState state = new LoopState(new ArrayList<>(List.of(ChatMessage.user(task))));
@@ -53,7 +51,7 @@ public class AgentLoop {
                 state.setFinalAnswer(lastResponseContent);
                 break;
             }
-            recordToolStep(state, step, stepStart, response, mcp);
+            recordToolStep(state, step, stepStart, response, environment);
         }
 
         if (state.finalAnswer().isBlank() && !lastResponseContent.isBlank()) {
@@ -76,14 +74,14 @@ public class AgentLoop {
             int step,
             Instant stepStart,
             LlmResponse response,
-            CmlMcpClient mcp
+            NetworkEnvironment environment
     ) {
         state.messages().add(ChatMessage.assistant(response.content(), response.toolCalls()));
         List<Map<String, Object>> toolResults = new ArrayList<>();
         List<ToolAuditEntry> stepAudit = new ArrayList<>();
 
         for (ToolCall toolCall : response.toolCalls()) {
-            ToolExecution execution = executeTool(step, toolCall, mcp);
+            ToolExecution execution = executeTool(step, toolCall, environment);
             state.messages().add(ChatMessage.tool(toolCall.id(), execution.messageContent()));
             toolResults.add(execution.result());
             stepAudit.add(execution.auditEntry());
@@ -102,10 +100,10 @@ public class AgentLoop {
         ));
     }
 
-    private ToolExecution executeTool(int step, ToolCall toolCall, CmlMcpClient mcp) {
+    private ToolExecution executeTool(int step, ToolCall toolCall, NetworkEnvironment environment) {
         Instant start = Instant.now();
         try {
-            String resultText = mcp.callTool(toolCall.name(), toolCall.arguments());
+            String resultText = environment.callTool(toolCall.name(), toolCall.arguments());
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("tool_call_id", toolCall.id());
             result.put("tool_name", toolCall.name());
